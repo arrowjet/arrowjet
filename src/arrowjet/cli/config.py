@@ -64,3 +64,49 @@ def resolve_option(cli_value, profile_key: str, env_var: str, profile: dict) -> 
     if env_val:
         return env_val
     return profile.get(profile_key)
+
+
+def print_connection_context(host: str, database: str, profile_name: Optional[str] = None) -> None:
+    """Print the active connection context so users know which cluster they're talking to."""
+    import click
+    profile_label = f" [{profile_name}]" if profile_name else ""
+    # Shorten host for readability: show first segment only
+    short_host = host.split(".")[0] if host and "." in host else (host or "unknown")
+    click.echo(f"Connected: {short_host} / {database}{profile_label}", err=False)
+
+
+def make_arrowjet_connection(host: str, database: str, user: str, password: str,
+                              profile: dict, staging_bucket: Optional[str] = None,
+                              staging_iam_role: Optional[str] = None,
+                              staging_region: str = "us-east-1"):
+    """Create an arrowjet connection, handling both password and IAM auth."""
+    import arrowjet
+
+    auth = profile.get("auth", "password")
+
+    if auth == "iam":
+        # IAM auth: use redshift_connector with iam=True, no password
+        import redshift_connector
+        import boto3
+
+        # Get temp credentials via IAM
+        client = boto3.client("redshift", region_name=staging_region)
+        creds = client.get_cluster_credentials(
+            DbUser=user,
+            DbName=database,
+            ClusterIdentifier=host.split(".")[0],
+            AutoCreate=False,
+        )
+        password = creds["DbPassword"]
+        user = creds["DbUser"]
+
+    if staging_bucket and staging_iam_role:
+        return arrowjet.connect(
+            host=host, database=database, user=user, password=password,
+            staging_bucket=staging_bucket, staging_iam_role=staging_iam_role,
+            staging_region=staging_region,
+        )
+    else:
+        return arrowjet.connect(
+            host=host, database=database, user=user, password=password,
+        )

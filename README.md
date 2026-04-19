@@ -5,7 +5,9 @@
 Arrowjet uses Redshift's native COPY and UNLOAD commands — the same paths AWS uses internally — wrapped in a simple Python API with automatic S3 staging, cleanup, and error handling.
 
 ```bash
-pip install arrowjet
+pip install arrowjet              # core (BYOC Engine, CLI basics)
+pip install arrowjet[redshift]    # + Redshift driver (arrowjet.connect())
+pip install arrowjet[full]        # + Redshift + SQLAlchemy
 ```
 
 ---

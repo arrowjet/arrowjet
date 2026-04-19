@@ -10,7 +10,7 @@ Examples:
 import sys
 import click
 
-from .config import get_profile, resolve_option
+from .config import get_profile, resolve_option, print_connection_context
 
 
 @click.command()
@@ -47,6 +47,7 @@ def validate(table, schema_name, row_count, show_schema, sample, sample_rows,
     conn = arrowjet.connect(host=host, database=database, user=user, password=password)
 
     try:
+        print_connection_context(host, database, profile)
         full_table = f"{schema_name}.{table}"
         click.echo(f"Table: {full_table}")
 

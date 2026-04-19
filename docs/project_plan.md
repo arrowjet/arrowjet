@@ -21,6 +21,7 @@
 | BYOC Engine API | ✅ Complete | arrowjet.Engine() — bring your own connection. 9 integration + 13 unit tests. | 2026-04-19 |
 | Provider Abstraction | ✅ Complete | BulkProvider interface. RedshiftProvider. 32 unit tests. Multi-db ready. | 2026-04-19 |
 | M9: PyPI & Launch | ✅ Complete | pip install arrowjet. https://pypi.org/project/arrowjet/ | 2026-04-19 |
+| M10: CLI & Production Quality | 🔜 Next | Graceful cancellation, IAM auth, S3-direct export, dependency split | |
 
 ---
 
@@ -563,12 +564,46 @@ High — this directly reduces adoption friction. Should ship before or alongsid
 
 ### Tasks
 
+| # | Task | Status | Output |
+|---|---|---|---|
+| 9.1 | Polish README (install, quickstart, before/after) | ✅ Done | User-facing README |
+| 9.2 | Publish to PyPI | ✅ Done | pip install arrowjet 0.1.0 |
+| 9.3 | Fix README links (relative → absolute GitHub URLs) | ✅ Done | arrowjet 0.1.1 pending publish |
+| 9.4 | Push to arrowjet/arrowjet GitHub org | ✅ Done | https://github.com/arrowjet/arrowjet |
+| 9.5 | Publish blog post | ⬜ Pending | HackerNews / Reddit / LinkedIn |
+| 9.6 | Submit to awesome-python / awesome-data-engineering | ⬜ Pending | Discovery |
+| 9.7 | Publish arrowjet 0.1.1 to PyPI (README link fix) | ⬜ Pending | pip install arrowjet==0.1.1 |
+
+---
+
+## Milestone 10: CLI & Production Quality — Open Source
+
+### Goals
+- Fix issues discovered during real-world CLI testing
+- Make arrowjet production-grade for first users
+- No new features — polish and correctness only
+
+### Tasks
+
 | # | Task | Output |
 |---|---|---|
-| 9.1 | Polish README (install, quickstart, before/after, GIF) | User-facing README |
-| 9.2 | Publish to PyPI | pip install arrowjet |
-| 9.3 | Publish blog post | HackerNews / Reddit / LinkedIn |
-| 9.4 | Submit to awesome-python / awesome-data-engineering lists | Discovery |
+| 10.1 | **S3-direct export** — UNLOAD directly to destination S3 path, no client roundtrip | ✅ Done |
+| 10.2 | **Graceful Ctrl+C** — catch KeyboardInterrupt, cancel Redshift query, clean up staged files, exit cleanly | ✅ Done |
+| 10.3 | **IAM authentication** — support `auth: iam` in config profile (no password, uses AWS credentials) | ✅ Done |
+| 10.4 | **Secrets Manager auth** — support `auth: secrets_manager` with secret ARN | ⬜ Pending |
+| 10.5 | **Optional dependencies** — split `redshift-connector` and `adbc-driver-postgresql` into optional extras (`pip install arrowjet[redshift]`) | ✅ Done |
+| 10.6 | **Connection validation on configure** — test the connection after `arrowjet configure` and report success/failure | ✅ Done |
+| 10.7 | **Progress indicator** — show progress for long-running exports (rows/s, elapsed time) | ⬜ Pending |
+| 10.8 | **Show connection context in output** — every command shows which cluster/database it's using | ✅ Done |
+| 10.9 | **`arrowjet profiles` command** — list configured profiles, show which is default | ⬜ Pending |
+| 10.10 | **`--dry-run` flag for export** — show UNLOAD SQL without executing | ⬜ Pending |
+| 10.11 | **`--from-file` flag for export** — read query from a SQL file | ⬜ Pending |
+| 10.12 | **Row count in S3-direct export** — show rows exported after UNLOAD completes | ⬜ Pending |
+| 10.13 | **Preview without full download** — use Parquet metadata for schema/row count, only fetch first row group for sample | ⬜ Pending |
+| 10.14 | **Truncate wide sample output** — limit column width in sample display, truncate long strings | ⬜ Pending |
+
+### Priority
+High — these are real gaps found during first-user testing. Fix before community outreach.
 
 ---
 
@@ -584,6 +619,7 @@ High — this directly reduces adoption friction. Should ship before or alongsid
 | BYOC Engine API | ✅ Complete | High (adoption friction reduction) | Open Source |
 | Provider Abstraction | ✅ Complete | High (multi-database foundation) | Open Source |
 | M9: PyPI & Launch | — | High (discoverability) | Open Source |
+| M10: CLI & Production Quality | — | High (first-user polish) | Open Source |
 
 **Phase B total: ~15 weeks (~3.5 months)**
 

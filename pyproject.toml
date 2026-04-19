@@ -28,9 +28,6 @@ classifiers = [
 dependencies = [
     "pyarrow>=14.0.0",
     "boto3>=1.34.0",
-    "adbc-driver-postgresql>=1.0.0",
-    "adbc-driver-manager>=1.0.0",
-    "redshift-connector>=2.1.0",
     "pandas>=2.0.0",
     "click>=8.0.0",
     "pyyaml>=6.0",
@@ -42,13 +39,27 @@ Repository = "https://github.com/arrowjet/arrowjet"
 "Bug Tracker" = "https://github.com/arrowjet/arrowjet/issues"
 
 [project.optional-dependencies]
+redshift = [
+    "redshift-connector>=2.1.0",
+    "adbc-driver-postgresql>=1.0.0",
+    "adbc-driver-manager>=1.0.0",
+]
 sqlalchemy = ["sqlalchemy>=2.0.0"]
+full = [
+    "redshift-connector>=2.1.0",
+    "adbc-driver-postgresql>=1.0.0",
+    "adbc-driver-manager>=1.0.0",
+    "sqlalchemy>=2.0.0",
+]
 dev = [
     "pytest>=8.0",
     "pyyaml>=6.0",
     "matplotlib>=3.8.0",
     "numpy>=1.26.0",
     "sqlalchemy>=2.0.0",
+    "redshift-connector>=2.1.0",
+    "adbc-driver-postgresql>=1.0.0",
+    "adbc-driver-manager>=1.0.0",
 ]
 
 [project.entry-points."sqlalchemy.dialects"]

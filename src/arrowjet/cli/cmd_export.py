@@ -1,6 +1,11 @@
 """
 arrowjet export — export data from Redshift to S3 or local file.
 
+S3 destination: UNLOAD runs directly to the destination — no roundtrip
+through the client machine. Fast, efficient, data stays in AWS.
+
+Local destination: UNLOAD → staging S3 → download → local file.
+
 Examples:
     arrowjet export --query "SELECT * FROM sales" --to s3://bucket/sales/
     arrowjet export --query "SELECT * FROM sales" --to ./sales.parquet
@@ -12,7 +17,7 @@ import sys
 import time
 import click
 
-from .config import get_profile, resolve_option
+from .config import get_profile, resolve_option, print_connection_context
 
 
 @click.command()
@@ -52,59 +57,86 @@ def export(query, destination, fmt, profile, host, database, user, password,
         click.echo(f"Destination: {destination}")
         click.echo(f"Format: {fmt}")
 
-    import arrowjet as arrowjet
-
     is_s3 = destination.startswith("s3://")
+    print_connection_context(host, database, profile)
+    start = time.perf_counter()
 
-    if is_s3 and staging_bucket and iam_role:
-        # Bulk mode: UNLOAD → S3 → Parquet → write to destination
-        conn = arrowjet.connect(
-            host=host, database=database, user=user, password=password,
-            staging_bucket=staging_bucket, staging_iam_role=iam_role,
-            staging_region=region,
+    if is_s3 and iam_role:
+        # S3 destination: UNLOAD directly to the destination path.
+        # Data goes Redshift → S3 only. No roundtrip through the client.
+        import redshift_connector
+        from arrowjet.providers.redshift import RedshiftProvider
+        from arrowjet.staging.config import StagingConfig
+
+        click.echo("Exporting via UNLOAD (direct to S3)...")
+
+        conn = redshift_connector.connect(
+            host=host, port=5439, database=database,
+            user=user, password=password,
         )
+        conn.autocommit = True
+
+        # Ensure destination ends with /
+        dest_path = destination.rstrip("/") + "/"
+
+        config = StagingConfig(
+            bucket=staging_bucket or dest_path.split("/")[2],
+            iam_role=iam_role,
+            region=region,
+        )
+        provider = RedshiftProvider(config)
+        export_cmd = provider.build_export_sql(query=query, staging_path=dest_path)
+
+        cursor = conn.cursor()
+        try:
+            cursor.execute(export_cmd.sql)
+        except KeyboardInterrupt:
+            click.echo("\nCancelling...", err=True)
+            try:
+                cursor.cancel()
+            except Exception:
+                pass
+            conn.close()
+            click.echo(
+                f"Warning: UNLOAD may have written partial files to {destination}\n"
+                f"Check and clean up manually if needed: aws s3 ls {destination}",
+                err=True,
+            )
+            raise SystemExit(1)
+        conn.close()
+
+        elapsed = time.perf_counter() - start
+        click.echo(f"Exported to {destination} in {elapsed:.2f}s")
+
     else:
-        # Safe mode: direct fetch
-        conn = arrowjet.connect(
-            host=host, database=database, user=user, password=password,
-        )
+        # Local destination: fetch → write locally
+        import arrowjet
 
-    try:
-        start = time.perf_counter()
-
-        if conn.has_bulk and is_s3:
-            # Use bulk read for S3 destinations
-            click.echo(f"Exporting via UNLOAD (bulk mode)...")
+        if staging_bucket and iam_role:
+            conn = arrowjet.connect(
+                host=host, database=database, user=user, password=password,
+                staging_bucket=staging_bucket, staging_iam_role=iam_role,
+                staging_region=region,
+            )
+            click.echo("Exporting via UNLOAD (bulk mode)...")
             result = conn.read_bulk(query)
             table = result.table
             rows = result.rows
         else:
-            # Use safe mode
-            click.echo(f"Exporting via direct fetch (safe mode)...")
+            conn = arrowjet.connect(
+                host=host, database=database, user=user, password=password,
+            )
+            click.echo("Exporting via direct fetch (safe mode)...")
             table = conn.fetch_arrow_table(query)
             rows = table.num_rows
 
-        elapsed = time.perf_counter() - start
+        conn.close()
 
-        # Write output
         if fmt == "parquet":
             import pyarrow.parquet as pq
-            if is_s3:
-                import pyarrow.fs as pafs
-                s3fs = pafs.S3FileSystem(region=region)
-                # Strip s3:// prefix for pyarrow
-                s3_path = destination.replace("s3://", "")
-                if not s3_path.endswith(".parquet"):
-                    s3_path = s3_path.rstrip("/") + "/export.parquet"
-                pq.write_table(table, s3_path, filesystem=s3fs)
-            else:
-                pq.write_table(table, destination)
+            pq.write_table(table, destination)
         elif fmt == "csv":
-            df = table.to_pandas()
-            df.to_csv(destination, index=False)
+            table.to_pandas().to_csv(destination, index=False)
 
-        total = time.perf_counter() - start
-        click.echo(f"Exported {rows:,} rows in {total:.2f}s → {destination}")
-
-    finally:
-        conn.close()
+        elapsed = time.perf_counter() - start
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")

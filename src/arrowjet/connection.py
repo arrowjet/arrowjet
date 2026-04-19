@@ -28,6 +28,15 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
+try:
+    import adbc_driver_postgresql.dbapi
+    import redshift_connector
+except ImportError:
+    raise ImportError(
+        "arrowjet.connect() requires the Redshift driver extras.\n"
+        "Install with: pip install arrowjet[redshift]"
+    )
+
 import pyarrow as pa
 import adbc_driver_postgresql.dbapi
 import redshift_connector
