@@ -601,6 +601,7 @@ High — this directly reduces adoption friction. Should ship before or alongsid
 | 10.12 | **Row count in S3-direct export** — show rows exported after UNLOAD completes | ⬜ Pending |
 | 10.13 | **Preview without full download** — use Parquet metadata for schema/row count, only fetch first row group for sample | ⬜ Pending |
 | 10.14 | **Truncate wide sample output** — limit column width in sample display, truncate long strings | ⬜ Pending |
+| 10.15 | **`arrowjet import` command** — load data into Redshift via COPY from S3 or local Parquet/CSV | ✅ Done |
 
 ### Priority
 High — these are real gaps found during first-user testing. Fix before community outreach.

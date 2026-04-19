@@ -154,11 +154,21 @@ See [docs/configuration.md](https://github.com/arrowjet/arrowjet/blob/main/docs/
 ## CLI
 
 ```bash
-arrowjet configure                                          # set up connection profile
-arrowjet export --query "SELECT * FROM sales" --to ./out.parquet
-arrowjet preview --file ./out.parquet
-arrowjet validate --table sales --row-count
+arrowjet configure                                                    # set up connection profile
+arrowjet export --query "SELECT * FROM sales" --to ./out.parquet      # export to local file
+arrowjet export --query "SELECT * FROM sales" --to s3://bucket/sales/ # export direct to S3 (no roundtrip)
+arrowjet import --from s3://bucket/sales/ --to sales_table            # load from S3 via COPY
+arrowjet import --from ./data.parquet --to sales_table                # load from local file
+arrowjet preview --file ./out.parquet                                 # inspect a Parquet file
+arrowjet preview --file s3://bucket/sales/data.parquet                # inspect an S3 Parquet file
+arrowjet validate --table sales --row-count                           # row count
+arrowjet validate --table sales --schema                              # column types
+arrowjet validate --table sales --sample                              # sample rows
+arrowjet validate --table sales --schema-name myschema --row-count    # non-public schema
 ```
+
+All commands read connection details from `~/.arrowjet/config.yaml` (set up with `arrowjet configure`).
+Override per-command with `--host`, `--password`, `--profile`, etc.
 
 See [docs/cli_reference.md](https://github.com/arrowjet/arrowjet/blob/main/docs/cli_reference.md) for full details.
 

@@ -13,6 +13,7 @@ from arrowjet import __version__
 
 from .cmd_configure import configure
 from .cmd_export import export
+from .cmd_import import import_cmd
 from .cmd_preview import preview
 from .cmd_validate import validate
 
@@ -26,6 +27,7 @@ def cli():
 
 cli.add_command(configure)
 cli.add_command(export)
+cli.add_command(import_cmd)
 cli.add_command(preview)
 cli.add_command(validate)
 
