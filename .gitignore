@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.venv312/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Test/cache
+.pytest_cache/
+
+# dbt runtime artifacts
+examples/dbt/target/
+examples/dbt/logs/
+examples/dbt/.user.yml
+
+# Airflow test environments
+airflow_test/
+airflow_test312/
+
+# Log files
+logs/
+
+# Airflow local test environment
+airflow_test/
+airflow_test312/
+
+# Credentials and configs with secrets
+.env
+benchmarks/config.yaml
+benchmarks/config_4node.yaml
+benchmarks/config_1node.yaml
+benchmarks/results/
+.DS_Store
+

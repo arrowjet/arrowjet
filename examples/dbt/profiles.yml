@@ -1,0 +1,12 @@
+arrowjet_redshift:
+  target: dev
+  outputs:
+    dev:
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      port: 5439
+      user: "{{ env_var('REDSHIFT_USER', 'awsuser') }}"
+      password: "{{ env_var('REDSHIFT_PASS') }}"
+      dbname: "{{ env_var('REDSHIFT_DATABASE', 'dev') }}"
+      schema: public
+      threads: 4

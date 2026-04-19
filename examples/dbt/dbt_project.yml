@@ -1,0 +1,16 @@
+name: arrowjet_example
+version: '1.0.0'
+config-version: 2
+
+profile: arrowjet_redshift
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+models:
+  arrowjet_example:
+    +materialized: table
+
+# Export transformed results after every dbt run
+on-run-end:
+  - "{{ export_with_arrowjet('sales_summary') }}"

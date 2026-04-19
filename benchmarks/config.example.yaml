@@ -1,0 +1,28 @@
+# Redshift connection
+redshift:
+  host: "your-cluster.xxxx.region.redshift.amazonaws.com"
+  port: 5439
+  database: "dev"
+  user: "awsuser"
+  password: "your-password"
+  # Or use IAM auth:
+  # iam: true
+  # cluster_identifier: "your-cluster"
+  # profile: "default"
+
+# S3 staging (must be same region as Redshift cluster)
+staging:
+  bucket: "your-staging-bucket"
+  prefix: "redshift-adbc-benchmark"
+  iam_role: "arn:aws:iam::123456789012:role/RedshiftS3Role"
+  region: "us-east-1"
+
+# Benchmark settings
+benchmark:
+  row_counts: [1000000, 10000000, 100000000]
+  test_table_prefix: "benchmark_test"
+  # Number of columns in test data
+  num_int_cols: 5
+  num_float_cols: 5
+  num_string_cols: 5
+  string_length: 32

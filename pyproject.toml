@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "arrowjet"
+version = "0.1.1"
+description = "High-performance bulk data movement for Redshift"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+keywords = ["redshift", "data", "bulk", "unload", "copy", "s3", "parquet", "arrow", "etl"]
+authors = [
+    {name = "Abdu Masah", email = "abdumasah@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+dependencies = [
+    "pyarrow>=14.0.0",
+    "boto3>=1.34.0",
+    "adbc-driver-postgresql>=1.0.0",
+    "adbc-driver-manager>=1.0.0",
+    "redshift-connector>=2.1.0",
+    "pandas>=2.0.0",
+    "click>=8.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/arrowjet/arrowjet"
+Repository = "https://github.com/arrowjet/arrowjet"
+"Bug Tracker" = "https://github.com/arrowjet/arrowjet/issues"
+
+[project.optional-dependencies]
+sqlalchemy = ["sqlalchemy>=2.0.0"]
+dev = [
+    "pytest>=8.0",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8.0",
+    "numpy>=1.26.0",
+    "sqlalchemy>=2.0.0",
+]
+
+[project.entry-points."sqlalchemy.dialects"]
+"redshift.arrowjet" = "arrowjet.sqlalchemy.dialect:RedshiftArrowjetDialect"
+
+[project.scripts]
+arrowjet = "arrowjet.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
