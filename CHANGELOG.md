@@ -7,6 +7,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.2] — 2026-04-19
+
+### Added
+- **`arrowjet import` command** — load data into Redshift via COPY from S3 or local Parquet/CSV. S3-direct path: data goes S3 → Redshift with no client roundtrip.
+- **CLI test suite** — 31 unit tests + 14 integration tests covering all CLI commands (export, import, validate, preview, configure). Includes negative tests for missing credentials, invalid tables, and missing required options.
+
+### Changed
+- README CLI section updated with `import` command, S3-direct export, `--schema-name`, and `--profile` usage examples.
+
+---
+
 ## [0.1.1] — 2026-04-19
 
 ### Added
