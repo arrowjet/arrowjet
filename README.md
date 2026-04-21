@@ -187,4 +187,4 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 
 ## License
 
-Apache 2.0
+MIT

@@ -7,7 +7,7 @@ name = "arrowjet"
 version = "0.1.2"
 description = "High-performance bulk data movement for Redshift"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = {text = "MIT"}
 requires-python = ">=3.10"
 keywords = ["redshift", "data", "bulk", "unload", "copy", "s3", "parquet", "arrow", "etl"]
 authors = [
@@ -17,7 +17,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
