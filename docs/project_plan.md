@@ -20,7 +20,7 @@
 | M8: Adoption & Examples | 🔜 In Progress | Airflow ✅, dbt ✅, notebook/pandas pending, SQLAlchemy deferred (after BYOC) | |
 | BYOC Engine API | ✅ Complete | arrowjet.Engine() — bring your own connection. 9 integration + 13 unit tests. | 2026-04-19 |
 | Provider Abstraction | ✅ Complete | BulkProvider interface. RedshiftProvider. 32 unit tests. Multi-db ready. | 2026-04-19 |
-| M9: PyPI & Launch | ✅ Complete | pip install arrowjet. https://pypi.org/project/arrowjet/ | 2026-04-19 |
+| M9: PyPI & Launch | ✅ Complete | pip install arrowjet 0.1.2. https://pypi.org/project/arrowjet/ | 2026-04-19 |
 | M10: CLI & Production Quality | 🔜 Next | Graceful cancellation, IAM auth, S3-direct export, dependency split | |
 
 ---
@@ -572,7 +572,8 @@ High — this directly reduces adoption friction. Should ship before or alongsid
 | 9.4 | Push to arrowjet/arrowjet GitHub org | ✅ Done | https://github.com/arrowjet/arrowjet |
 | 9.5 | Publish blog post | ⬜ Pending | HackerNews / Reddit / LinkedIn |
 | 9.6 | Submit to awesome-python / awesome-data-engineering | ⬜ Pending | Discovery |
-| 9.7 | Publish arrowjet 0.1.1 to PyPI (README link fix) | ⬜ Pending | pip install arrowjet==0.1.1 |
+| 9.7 | Publish arrowjet 0.1.1 to PyPI (README link fix) | ✅ Done | pip install arrowjet==0.1.1 |
+| 9.8 | Publish arrowjet 0.1.2 to PyPI (import command + CLI tests) | ✅ Done | pip install arrowjet==0.1.2 |
 
 ---
 
@@ -602,6 +603,7 @@ High — this directly reduces adoption friction. Should ship before or alongsid
 | 10.13 | **Preview without full download** — use Parquet metadata for schema/row count, only fetch first row group for sample | ⬜ Pending |
 | 10.14 | **Truncate wide sample output** — limit column width in sample display, truncate long strings | ⬜ Pending |
 | 10.15 | **`arrowjet import` command** — load data into Redshift via COPY from S3 or local Parquet/CSV | ✅ Done |
+| 10.16 | **Write benchmark (EC2)** — multi-lane comparison: write_dataframe vs multi-row VALUES INSERT vs psycopg2 execute_values vs manual COPY vs arrowjet write_bulk at 1M and 10M rows on 4-node cluster | 🔜 In Progress |
 
 ### Priority
 High — these are real gaps found during first-user testing. Fix before community outreach.
