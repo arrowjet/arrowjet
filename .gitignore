@@ -40,3 +40,6 @@ benchmarks/config_1node.yaml
 benchmarks/results/
 .DS_Store
 
+
+# Internal docs
+internal/
