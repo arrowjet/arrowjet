@@ -7,6 +7,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.1.3] — 2026-04-21
+
+### Fixed
+- License metadata corrected to MIT (matches LICENSE file). Previously pyproject.toml incorrectly stated Apache-2.0.
+
+---
+
 ## [0.1.2] — 2026-04-19
 
 ### Added

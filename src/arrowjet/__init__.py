@@ -24,7 +24,7 @@ Usage:
     engine.write_bulk(existing_conn, arrow_table, "target_table")
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .connection import connect, ArrowjetConnection, ArrowjetError
 from .engine import Engine
