@@ -14,15 +14,25 @@ pip install arrowjet[full]        # + Redshift + SQLAlchemy
 
 ## Why Arrowjet
 
-Standard Redshift drivers fetch data row-by-row over the wire. For large datasets, this is the bottleneck.
+Standard Redshift drivers move data row-by-row over the wire. For large datasets, this is the bottleneck.
 
 Arrowjet routes through S3 instead — parallel, columnar, and fast.
+
+### Reads (UNLOAD)
 
 | Approach | 1M rows | 10M rows |
 |---|---|---|
 | `cursor.fetchall()` | ~11s | ~105s |
 | Manual UNLOAD | ~7s | ~58s |
 | **Arrowjet** | **~4s** | **~34s** |
+
+### Writes (COPY)
+
+| Approach | 1M rows | vs INSERT |
+|---|---|---|
+| `write_dataframe()` INSERT | 13.4 hours | baseline |
+| Manual COPY | ~4s | 11,925x faster |
+| **Arrowjet** | **~3.3s** | **14,505x faster** |
 
 *Benchmarked on a 4-node ra3.large cluster, EC2 same region.*
 
