@@ -76,6 +76,16 @@ class TestPrintConnectionContext:
         captured = capsys.readouterr()
         assert "[prod]" in captured.out
 
+    def test_shows_auth_type(self, capsys):
+        print_connection_context("host.example.com", "mydb", auth_type="iam")
+        captured = capsys.readouterr()
+        assert "(iam)" in captured.out
+
+    def test_hides_password_auth_label(self, capsys):
+        print_connection_context("host.example.com", "mydb", auth_type="password")
+        captured = capsys.readouterr()
+        assert "(password)" not in captured.out
+
     def test_handles_host_without_dots(self, capsys):
         print_connection_context("localhost", "dev")
         captured = capsys.readouterr()
@@ -135,10 +145,11 @@ class TestCliHelp:
 class TestExportErrors:
     def test_missing_host_shows_error(self, monkeypatch):
         # Clear all env vars and profile so no credentials are available
-        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER", "REDSHIFT_DATABASE"]:
+        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER", "REDSHIFT_DATABASE",
+                     "STAGING_BUCKET", "STAGING_IAM_ROLE", "STAGING_REGION", "REDSHIFT_AUTH_SECRET_ARN"]:
             monkeypatch.delenv(var, raising=False)
         runner = CliRunner()
-        with patch("arrowjet.cli.cmd_export.get_profile", return_value={}):
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
             result = runner.invoke(cli, [
                 "export", "--query", "SELECT 1", "--to", "/tmp/out.parquet",
             ])
@@ -167,9 +178,12 @@ class TestImportErrors:
         result = runner.invoke(cli, ["import", "--from", "s3://bucket/path/"])
         assert result.exit_code != 0
 
-    def test_missing_iam_role_shows_error(self):
+    def test_missing_iam_role_shows_error(self, monkeypatch):
+        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER", "STAGING_BUCKET",
+                     "STAGING_IAM_ROLE", "STAGING_REGION", "REDSHIFT_AUTH_SECRET_ARN"]:
+            monkeypatch.delenv(var, raising=False)
         runner = CliRunner()
-        with patch("arrowjet.cli.cmd_import.get_profile", return_value={}):
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
             result = runner.invoke(cli, [
                 "import",
                 "--from", "s3://bucket/path/",
@@ -179,9 +193,12 @@ class TestImportErrors:
             ])
         assert "Error" in result.output or result.exit_code != 0
 
-    def test_local_file_without_staging_bucket_shows_error(self):
+    def test_local_file_without_staging_bucket_shows_error(self, monkeypatch):
+        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER", "STAGING_BUCKET",
+                     "STAGING_IAM_ROLE", "STAGING_REGION", "REDSHIFT_AUTH_SECRET_ARN"]:
+            monkeypatch.delenv(var, raising=False)
         runner = CliRunner()
-        with patch("arrowjet.cli.cmd_import.get_profile", return_value={}):
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
             result = runner.invoke(cli, [
                 "import",
                 "--from", "/tmp/data.parquet",
@@ -190,7 +207,7 @@ class TestImportErrors:
                 "--password", "pass",
                 "--iam-role", "arn:aws:iam::123:role/test",
             ])
-        assert "staging-bucket" in result.output or result.exit_code != 0
+        assert "staging" in result.output.lower() or result.exit_code != 0
 
 
 class TestValidateErrors:
@@ -200,10 +217,12 @@ class TestValidateErrors:
         assert result.exit_code != 0
 
     def test_missing_credentials_shows_error(self, monkeypatch):
-        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER"]:
+        for var in ["REDSHIFT_HOST", "REDSHIFT_PASS", "REDSHIFT_USER",
+                     "STAGING_BUCKET", "STAGING_IAM_ROLE", "STAGING_REGION",
+                     "REDSHIFT_AUTH_SECRET_ARN"]:
             monkeypatch.delenv(var, raising=False)
         runner = CliRunner()
-        with patch("arrowjet.cli.cmd_validate.get_profile", return_value={}):
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
             result = runner.invoke(cli, [
                 "validate", "--table", "my_table",
             ])

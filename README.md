@@ -67,6 +67,84 @@ df = conn.fetch_dataframe("SELECT COUNT(*) FROM events")
 
 ---
 
+## Authentication
+
+Arrowjet supports three authentication methods for Redshift.
+
+### Password (default)
+
+```python
+conn = arrowjet.connect(
+    host="your-cluster.region.redshift.amazonaws.com",
+    user="awsuser",
+    password="...",
+    staging_bucket=..., staging_iam_role=..., staging_region=...,
+)
+```
+
+### IAM (recommended for production)
+
+No password needed — temporary credentials are fetched automatically via `GetClusterCredentials` (provisioned) or `GetCredentials` (serverless).
+
+```python
+# Provisioned cluster
+conn = arrowjet.connect(
+    host="your-cluster.region.redshift.amazonaws.com",
+    auth_type="iam",
+    db_user="etl_user",
+    staging_bucket=..., staging_iam_role=..., staging_region=...,
+)
+
+# Serverless workgroup
+conn = arrowjet.connect(
+    host="your-workgroup.account-id.region.redshift-serverless.amazonaws.com",
+    auth_type="iam",
+    db_user="admin",
+    staging_bucket=..., staging_iam_role=..., staging_region=...,
+)
+```
+
+Requires AWS credentials in the environment (env vars, `~/.aws/credentials`, or IAM role).
+
+### Secrets Manager
+
+```python
+conn = arrowjet.connect(
+    host="your-cluster.region.redshift.amazonaws.com",
+    auth_type="secrets_manager",
+    secret_arn="arn:aws:secretsmanager:us-east-1:123:secret:my-redshift-secret",
+    staging_bucket=..., staging_iam_role=..., staging_region=...,
+)
+```
+
+### BYOC with any auth method
+
+The auth module works standalone — resolve credentials, then use any driver:
+
+```python
+from arrowjet.auth.redshift import resolve_credentials
+
+creds = resolve_credentials(
+    host="your-cluster.region.redshift.amazonaws.com",
+    auth_type="iam",
+    db_user="etl_user",
+)
+
+# Use with redshift_connector
+import redshift_connector
+conn = redshift_connector.connect(**creds.as_kwargs())
+
+# Or with ADBC
+import adbc_driver_postgresql.dbapi
+conn = adbc_driver_postgresql.dbapi.connect(creds.as_uri())
+
+# Then pass to the Engine
+engine = arrowjet.Engine(staging_bucket=..., staging_iam_role=..., staging_region=...)
+result = engine.read_bulk(conn, "SELECT * FROM events")
+```
+
+---
+
 ## Bring Your Own Connection
 
 Already have connection management? Use the Engine API — no rewiring needed.
@@ -144,6 +222,13 @@ conn = arrowjet.connect(
     # Redshift connection
     host="...", database="dev", user="awsuser", password="...",
 
+    # Authentication (optional — default "password")
+    auth_type="password",          # password | iam | secrets_manager
+    db_user="etl_user",            # IAM: database user
+    secret_arn="arn:...",           # Secrets Manager: secret ARN
+    aws_region="us-east-1",        # AWS region (inferred from host if omitted)
+    aws_profile="production",      # AWS profile name (optional)
+
     # S3 staging (required for bulk mode)
     staging_bucket="my-bucket",
     staging_iam_role="arn:aws:iam::123:role/RedshiftS3",
@@ -190,6 +275,7 @@ See [docs/cli_reference.md](https://github.com/arrowjet/arrowjet/blob/main/docs/
 - Redshift cluster (provisioned or serverless)
 - S3 bucket in the same region (for bulk mode)
 - IAM role with S3 access attached to the Redshift cluster
+- For IAM/Secrets Manager auth: `boto3` (included in base install) and AWS credentials in the environment
 
 See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_setup.md) for IAM configuration.
 

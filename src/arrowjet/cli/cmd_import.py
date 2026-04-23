@@ -14,7 +14,13 @@ import sys
 import time
 import click
 
-from .config import get_profile, resolve_option, print_connection_context
+from .config import (
+    resolve_cli_connection_params,
+    validate_connection_params,
+    print_connection_context,
+    make_arrowjet_connection,
+    make_raw_connection,
+)
 
 
 @click.command(name="import")
@@ -25,54 +31,51 @@ from .config import get_profile, resolve_option, print_connection_context
 @click.option("--database", default=None, help="Database (overrides profile)")
 @click.option("--user", default=None, help="User (overrides profile)")
 @click.option("--password", default=None, help="Password (overrides profile)")
+@click.option("--auth-type", default=None, type=click.Choice(["password", "iam", "secrets_manager"]),
+              help="Auth method (overrides profile)")
+@click.option("--secret-arn", default=None, help="Secrets Manager ARN (overrides profile)")
 @click.option("--staging-bucket", default=None, help="S3 staging bucket (required for local files)")
 @click.option("--iam-role", default=None, help="IAM role ARN (overrides profile)")
 @click.option("--region", default=None, help="AWS region (overrides profile)")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
 def import_cmd(source, target_table, profile, host, database, user, password,
-               staging_bucket, iam_role, region, verbose):
+               auth_type, secret_arn, staging_bucket, iam_role, region, verbose):
     """Load data into Redshift from S3 or a local Parquet/CSV file."""
-    prof = get_profile(profile)
+    params = resolve_cli_connection_params(
+        profile, host, database, user, password,
+        staging_bucket, iam_role, region,
+        auth_type=auth_type, secret_arn=secret_arn,
+    )
 
-    host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
-    database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
-    user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
-    password = resolve_option(password, "password", "REDSHIFT_PASS", prof)
-    staging_bucket = resolve_option(staging_bucket, "staging_bucket", "STAGING_BUCKET", prof)
-    iam_role = resolve_option(iam_role, "staging_iam_role", "STAGING_IAM_ROLE", prof)
-    region = resolve_option(region, "staging_region", "STAGING_REGION", prof) or "us-east-1"
-
-    if not host or not password:
-        click.echo("Error: Redshift host and password required. Run 'arrowjet configure' or set env vars.", err=True)
+    err = validate_connection_params(params)
+    if err:
+        click.echo(f"Error: {err}", err=True)
         sys.exit(1)
 
-    if not iam_role:
+    if not params["staging_iam_role"]:
         click.echo("Error: IAM role ARN required for COPY. Set staging_iam_role in your profile.", err=True)
         sys.exit(1)
 
-    print_connection_context(host, database, profile)
+    print_connection_context(params["host"], params["database"],
+                             params["auth_type"], params["profile_name"])
 
     is_s3 = source.startswith("s3://")
     start = time.perf_counter()
 
     if is_s3:
-        # S3 source: COPY runs directly from S3 to Redshift — no client roundtrip
-        import redshift_connector
+        # S3 source: COPY runs directly from S3 to Redshift
         from arrowjet.providers.redshift import RedshiftProvider
         from arrowjet.staging.config import StagingConfig
 
         click.echo(f"Importing via COPY (direct from S3) → {target_table}...")
 
-        conn = redshift_connector.connect(
-            host=host, port=5439, database=database,
-            user=user, password=password,
-        )
+        conn = make_raw_connection(params)
         conn.autocommit = False
 
         config = StagingConfig(
             bucket=source.replace("s3://", "").split("/")[0],
-            iam_role=iam_role,
-            region=region,
+            iam_role=params["staging_iam_role"],
+            region=params["staging_region"],
         )
         provider = RedshiftProvider(config)
         import_cmd_obj = provider.build_import_sql(
@@ -104,16 +107,14 @@ def import_cmd(source, target_table, profile, host, database, user, password,
 
     else:
         # Local file: upload to staging S3, then COPY
-        if not staging_bucket:
+        if not params["staging_bucket"]:
             click.echo("Error: --staging-bucket required for local file imports.", err=True)
             sys.exit(1)
 
-        import arrowjet
         import pyarrow.parquet as pq
 
         click.echo(f"Importing {source} → {target_table} via staging S3...")
 
-        # Read local file
         if source.endswith(".parquet"):
             table = pq.read_table(source)
         elif source.endswith(".csv"):
@@ -124,11 +125,7 @@ def import_cmd(source, target_table, profile, host, database, user, password,
             click.echo("Error: only .parquet and .csv files supported for local import.", err=True)
             sys.exit(1)
 
-        conn = arrowjet.connect(
-            host=host, database=database, user=user, password=password,
-            staging_bucket=staging_bucket, staging_iam_role=iam_role,
-            staging_region=region,
-        )
+        conn = make_arrowjet_connection(params, need_staging=True)
 
         try:
             result = conn.write_bulk(table, target_table)

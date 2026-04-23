@@ -57,6 +57,15 @@ def connect(
     user: str = "awsuser",
     password: str = "",
     port: int = 5439,
+    # Authentication
+    auth_type: str = "password",
+    db_user: Optional[str] = None,
+    db_groups: Optional[list] = None,
+    auto_create: bool = False,
+    duration_seconds: int = 900,
+    secret_arn: Optional[str] = None,
+    aws_region: Optional[str] = None,
+    aws_profile: Optional[str] = None,
     # Staging config (required for bulk mode)
     staging_bucket: Optional[str] = None,
     staging_iam_role: Optional[str] = None,
@@ -81,13 +90,42 @@ def connect(
     auto_mode_threshold_bytes: int = 50_000_000,
 ) -> ArrowjetConnection:
     """
-    Create a Arrowjet connection to Redshift.
+    Create an Arrowjet connection to Redshift.
 
     Provides both safe mode (DBAPI) and bulk mode (read_bulk/write_bulk).
     Staging parameters are required for bulk operations.
+
+    Authentication:
+        auth_type="password" (default) — uses user/password directly.
+        auth_type="iam" — fetches temporary credentials via IAM
+            (GetClusterCredentials for provisioned, GetCredentials for serverless).
+        auth_type="secrets_manager" — fetches credentials from AWS Secrets Manager.
+
+    For IAM and Secrets Manager, boto3 must be installed and AWS credentials
+    must be available (environment, IAM role, or ~/.aws/credentials).
     """
+    # Resolve credentials
+    from .auth.redshift import resolve_credentials
+
+    creds = resolve_credentials(
+        host=host,
+        auth_type=auth_type,
+        port=port,
+        database=database,
+        user=user,
+        password=password,
+        db_user=db_user,
+        db_groups=db_groups,
+        auto_create=auto_create,
+        duration_seconds=duration_seconds,
+        secret_arn=secret_arn,
+        region=aws_region or staging_region,
+        profile=aws_profile,
+    )
+
     return ArrowjetConnection(
-        host=host, database=database, user=user, password=password, port=port,
+        host=creds.host, database=creds.database,
+        user=creds.user, password=creds.password, port=creds.port,
         staging_bucket=staging_bucket, staging_iam_role=staging_iam_role,
         staging_region=staging_region, staging_prefix=staging_prefix,
         staging_cleanup=staging_cleanup, staging_encryption=staging_encryption,
@@ -120,7 +158,8 @@ class ArrowjetConnection:
         self._port = port
 
         # Safe mode connection (ADBC PG driver)
-        uri = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        from urllib.parse import quote_plus
+        uri = f"postgresql://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{database}"
         self._adbc_conn = adbc_driver_postgresql.dbapi.connect(uri)
 
         # Also keep a redshift_connector for COPY/UNLOAD commands

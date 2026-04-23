@@ -12,12 +12,17 @@ Examples:
     arrowjet export --query "SELECT * FROM sales" --to ./sales.csv --format csv
 """
 
-import os
 import sys
 import time
 import click
 
-from .config import get_profile, resolve_option, print_connection_context
+from .config import (
+    resolve_cli_connection_params,
+    validate_connection_params,
+    print_connection_context,
+    make_arrowjet_connection,
+    make_raw_connection,
+)
 
 
 @click.command()
@@ -29,60 +34,54 @@ from .config import get_profile, resolve_option, print_connection_context
 @click.option("--database", default=None, help="Database (overrides profile)")
 @click.option("--user", default=None, help="User (overrides profile)")
 @click.option("--password", default=None, help="Password (overrides profile)")
+@click.option("--auth-type", default=None, type=click.Choice(["password", "iam", "secrets_manager"]),
+              help="Auth method (overrides profile)")
+@click.option("--secret-arn", default=None, help="Secrets Manager ARN (overrides profile)")
 @click.option("--staging-bucket", default=None, help="S3 staging bucket (overrides profile)")
 @click.option("--iam-role", default=None, help="IAM role ARN (overrides profile)")
 @click.option("--region", default=None, help="AWS region (overrides profile)")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
 def export(query, destination, fmt, profile, host, database, user, password,
-           staging_bucket, iam_role, region, verbose):
+           auth_type, secret_arn, staging_bucket, iam_role, region, verbose):
     """Export query results from Redshift to S3 or local file."""
-    prof = get_profile(profile)
+    params = resolve_cli_connection_params(
+        profile, host, database, user, password,
+        staging_bucket, iam_role, region,
+        auth_type=auth_type, secret_arn=secret_arn,
+    )
 
-    host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
-    database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
-    user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
-    password = resolve_option(password, "password", "REDSHIFT_PASS", prof)
-    staging_bucket = resolve_option(staging_bucket, "staging_bucket", "STAGING_BUCKET", prof)
-    iam_role = resolve_option(iam_role, "staging_iam_role", "STAGING_IAM_ROLE", prof)
-    region = resolve_option(region, "staging_region", "STAGING_REGION", prof) or "us-east-1"
-
-    if not host or not password:
-        click.echo("Error: Redshift host and password required. Run 'arrowjet configure' or set env vars.", err=True)
+    err = validate_connection_params(params)
+    if err:
+        click.echo(f"Error: {err}", err=True)
         sys.exit(1)
 
     if verbose:
-        click.echo(f"Host: {host}")
-        click.echo(f"Database: {database}")
+        click.echo(f"Host: {params['host']}")
+        click.echo(f"Database: {params['database']}")
+        click.echo(f"Auth: {params['auth_type']}")
         click.echo(f"Query: {query}")
         click.echo(f"Destination: {destination}")
         click.echo(f"Format: {fmt}")
 
     is_s3 = destination.startswith("s3://")
-    print_connection_context(host, database, profile)
+    print_connection_context(params["host"], params["database"],
+                             params["auth_type"], params["profile_name"])
     start = time.perf_counter()
 
-    if is_s3 and iam_role:
+    if is_s3 and params["staging_iam_role"]:
         # S3 destination: UNLOAD directly to the destination path.
-        # Data goes Redshift → S3 only. No roundtrip through the client.
-        import redshift_connector
         from arrowjet.providers.redshift import RedshiftProvider
         from arrowjet.staging.config import StagingConfig
 
         click.echo("Exporting via UNLOAD (direct to S3)...")
 
-        conn = redshift_connector.connect(
-            host=host, port=5439, database=database,
-            user=user, password=password,
-        )
-        conn.autocommit = True
-
-        # Ensure destination ends with /
+        conn = make_raw_connection(params)
         dest_path = destination.rstrip("/") + "/"
 
         config = StagingConfig(
-            bucket=staging_bucket or dest_path.split("/")[2],
-            iam_role=iam_role,
-            region=region,
+            bucket=params["staging_bucket"] or dest_path.split("/")[2],
+            iam_role=params["staging_iam_role"],
+            region=params["staging_region"],
         )
         provider = RedshiftProvider(config)
         export_cmd = provider.build_export_sql(query=query, staging_path=dest_path)
@@ -110,22 +109,14 @@ def export(query, destination, fmt, profile, host, database, user, password,
 
     else:
         # Local destination: fetch → write locally
-        import arrowjet
-
-        if staging_bucket and iam_role:
-            conn = arrowjet.connect(
-                host=host, database=database, user=user, password=password,
-                staging_bucket=staging_bucket, staging_iam_role=iam_role,
-                staging_region=region,
-            )
+        if params["staging_bucket"] and params["staging_iam_role"]:
+            conn = make_arrowjet_connection(params)
             click.echo("Exporting via UNLOAD (bulk mode)...")
             result = conn.read_bulk(query)
             table = result.table
             rows = result.rows
         else:
-            conn = arrowjet.connect(
-                host=host, database=database, user=user, password=password,
-            )
+            conn = make_arrowjet_connection(params)
             click.echo("Exporting via direct fetch (safe mode)...")
             table = conn.fetch_arrow_table(query)
             rows = table.num_rows

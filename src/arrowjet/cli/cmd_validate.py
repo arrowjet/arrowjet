@@ -10,7 +10,12 @@ Examples:
 import sys
 import click
 
-from .config import get_profile, resolve_option, print_connection_context
+from .config import (
+    resolve_cli_connection_params,
+    validate_connection_params,
+    print_connection_context,
+    make_arrowjet_connection,
+)
 
 
 @click.command()
@@ -25,29 +30,32 @@ from .config import get_profile, resolve_option, print_connection_context
 @click.option("--database", default=None)
 @click.option("--user", default=None)
 @click.option("--password", default=None)
+@click.option("--auth-type", default=None, type=click.Choice(["password", "iam", "secrets_manager"]),
+              help="Auth method (overrides profile)")
+@click.option("--secret-arn", default=None, help="Secrets Manager ARN (overrides profile)")
 def validate(table, schema_name, row_count, show_schema, sample, sample_rows,
-             profile, host, database, user, password):
+             profile, host, database, user, password, auth_type, secret_arn):
     """Validate a Redshift table (row count, schema, sample data)."""
-    prof = get_profile(profile)
+    params = resolve_cli_connection_params(
+        profile, host, database, user, password,
+        staging_bucket=None, iam_role=None, region=None,
+        auth_type=auth_type, secret_arn=secret_arn,
+    )
 
-    host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
-    database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
-    user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
-    password = resolve_option(password, "password", "REDSHIFT_PASS", prof)
-
-    if not host or not password:
-        click.echo("Error: Redshift host and password required.", err=True)
+    err = validate_connection_params(params)
+    if err:
+        click.echo(f"Error: {err}", err=True)
         sys.exit(1)
 
     # Default: show everything if no flags specified
     if not row_count and not show_schema and not sample:
         row_count = show_schema = sample = True
 
-    import arrowjet as arrowjet
-    conn = arrowjet.connect(host=host, database=database, user=user, password=password)
+    conn = make_arrowjet_connection(params)
 
     try:
-        print_connection_context(host, database, profile)
+        print_connection_context(params["host"], params["database"],
+                                 params["auth_type"], params["profile_name"])
         full_table = f"{schema_name}.{table}"
         click.echo(f"Table: {full_table}")
 

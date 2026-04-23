@@ -16,6 +16,15 @@ Example ~/.arrowjet/config.yaml:
         staging_bucket: my-staging-bucket
         staging_iam_role: arn:aws:iam::123:role/RedshiftS3
         staging_region: us-east-1
+
+      production:
+        host: prod-cluster.region.redshift.amazonaws.com
+        database: prod
+        auth: iam
+        user: etl_user
+        staging_bucket: prod-staging
+        staging_iam_role: arn:aws:iam::123:role/ProdRedshiftS3
+        staging_region: us-east-1
 """
 
 from __future__ import annotations
@@ -66,47 +75,127 @@ def resolve_option(cli_value, profile_key: str, env_var: str, profile: dict) -> 
     return profile.get(profile_key)
 
 
-def print_connection_context(host: str, database: str, profile_name: Optional[str] = None) -> None:
+def print_connection_context(host: str, database: str, auth_type: str = "password",
+                             profile_name: Optional[str] = None) -> None:
     """Print the active connection context so users know which cluster they're talking to."""
     import click
     profile_label = f" [{profile_name}]" if profile_name else ""
-    # Shorten host for readability: show first segment only
+    auth_label = f" ({auth_type})" if auth_type != "password" else ""
     short_host = host.split(".")[0] if host and "." in host else (host or "unknown")
-    click.echo(f"Connected: {short_host} / {database}{profile_label}", err=False)
+    click.echo(f"Connected: {short_host} / {database}{auth_label}{profile_label}", err=False)
 
 
-def make_arrowjet_connection(host: str, database: str, user: str, password: str,
-                              profile: dict, staging_bucket: Optional[str] = None,
-                              staging_iam_role: Optional[str] = None,
-                              staging_region: str = "us-east-1"):
-    """Create an arrowjet connection, handling both password and IAM auth."""
+def resolve_cli_connection_params(profile, host, database, user, password,
+                                  staging_bucket, iam_role, region, auth_type=None,
+                                  secret_arn=None) -> dict:
+    """
+    Resolve all connection parameters from CLI flags, env vars, and profile.
+
+    Returns a dict with all parameters needed for arrowjet.connect() or
+    resolve_credentials().
+    """
+    prof = get_profile(profile)
+
+    resolved_host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
+    resolved_database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
+    resolved_user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
+    resolved_password = resolve_option(password, "password", "REDSHIFT_PASS", prof) or ""
+    resolved_bucket = resolve_option(staging_bucket, "staging_bucket", "STAGING_BUCKET", prof)
+    resolved_iam_role = resolve_option(iam_role, "staging_iam_role", "STAGING_IAM_ROLE", prof)
+    resolved_region = resolve_option(region, "staging_region", "STAGING_REGION", prof) or "us-east-1"
+    resolved_auth = auth_type or prof.get("auth", "password")
+    resolved_secret_arn = resolve_option(secret_arn, "secret_arn", "REDSHIFT_AUTH_SECRET_ARN", prof)
+
+    return {
+        "host": resolved_host,
+        "database": resolved_database,
+        "user": resolved_user,
+        "password": resolved_password,
+        "auth_type": resolved_auth,
+        "secret_arn": resolved_secret_arn,
+        "staging_bucket": resolved_bucket,
+        "staging_iam_role": resolved_iam_role,
+        "staging_region": resolved_region,
+        "profile": prof,
+        "profile_name": profile,
+    }
+
+
+def validate_connection_params(params: dict) -> Optional[str]:
+    """
+    Validate that we have enough info to connect.
+    Returns an error message string, or None if valid.
+    """
+    if not params["host"]:
+        return "Redshift host required. Run 'arrowjet configure' or set REDSHIFT_HOST."
+
+    auth = params["auth_type"]
+    if auth == "password" and not params["password"]:
+        return "Password required for password auth. Use --password, set REDSHIFT_PASS, or switch to auth_type=iam."
+    if auth == "secrets_manager" and not params["secret_arn"]:
+        return "secret_arn required for Secrets Manager auth."
+
+    return None
+
+
+def make_arrowjet_connection(params: dict, need_staging: bool = False):
+    """
+    Create an arrowjet connection from resolved params.
+
+    Uses arrowjet.connect() with auth_type — all auth flows go through
+    the same path.
+    """
     import arrowjet
 
-    auth = profile.get("auth", "password")
+    if need_staging and not (params["staging_bucket"] and params["staging_iam_role"]):
+        import click
+        click.echo("Error: staging_bucket and staging_iam_role required for bulk operations.", err=True)
+        raise SystemExit(1)
 
-    if auth == "iam":
-        # IAM auth: use redshift_connector with iam=True, no password
-        import redshift_connector
-        import boto3
+    kwargs = dict(
+        host=params["host"],
+        database=params["database"],
+        user=params["user"],
+        password=params["password"],
+        auth_type=params["auth_type"],
+        aws_region=params["staging_region"],
+    )
 
-        # Get temp credentials via IAM
-        client = boto3.client("redshift", region_name=staging_region)
-        creds = client.get_cluster_credentials(
-            DbUser=user,
-            DbName=database,
-            ClusterIdentifier=host.split(".")[0],
-            AutoCreate=False,
-        )
-        password = creds["DbPassword"]
-        user = creds["DbUser"]
+    if params["auth_type"] == "secrets_manager":
+        kwargs["secret_arn"] = params["secret_arn"]
+    if params["auth_type"] == "iam":
+        kwargs["db_user"] = params["user"]
 
-    if staging_bucket and staging_iam_role:
-        return arrowjet.connect(
-            host=host, database=database, user=user, password=password,
-            staging_bucket=staging_bucket, staging_iam_role=staging_iam_role,
-            staging_region=staging_region,
-        )
-    else:
-        return arrowjet.connect(
-            host=host, database=database, user=user, password=password,
-        )
+    if params["staging_bucket"] and params["staging_iam_role"]:
+        kwargs["staging_bucket"] = params["staging_bucket"]
+        kwargs["staging_iam_role"] = params["staging_iam_role"]
+        kwargs["staging_region"] = params["staging_region"]
+
+    return arrowjet.connect(**kwargs)
+
+
+def make_raw_connection(params: dict):
+    """
+    Create a raw DBAPI connection (for S3-direct export/import where
+    we don't need the full arrowjet connection, just cursor.execute()).
+
+    Uses resolve_credentials for auth, then connects with redshift_connector.
+    """
+    from arrowjet.auth.redshift import resolve_credentials
+    import redshift_connector
+
+    creds = resolve_credentials(
+        host=params["host"],
+        port=5439,
+        database=params["database"],
+        user=params["user"],
+        password=params["password"],
+        auth_type=params["auth_type"],
+        db_user=params["user"] if params["auth_type"] == "iam" else None,
+        secret_arn=params.get("secret_arn"),
+        region=params["staging_region"],
+    )
+
+    conn = redshift_connector.connect(**creds.as_kwargs())
+    conn.autocommit = True
+    return conn
