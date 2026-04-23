@@ -28,11 +28,14 @@ Arrowjet routes through S3 instead — parallel, columnar, and fast.
 
 ### Writes (COPY)
 
-| Approach | 1M rows | vs INSERT |
+| Approach | 1M rows | vs Arrowjet |
 |---|---|---|
-| `write_dataframe()` INSERT | 13.4 hours | baseline |
-| Manual COPY | ~4s | 11,925x faster |
-| **Arrowjet** | **~3.3s** | **14,505x faster** |
+| `write_dataframe()` INSERT | 13.4 hours | 14,523x slower |
+| `executemany` (batch 5000) | 27.1 hours | 29,296x slower |
+| Multi-row VALUES (batch 5000) | 195.8s | 58.8x slower |
+| Parallel VALUES (4 threads) | 148.4s | 44.6x slower |
+| Manual COPY | 4.06s | 1.22x slower |
+| **Arrowjet** | **3.33s** | **baseline** |
 
 *Benchmarked on a 4-node ra3.large cluster, EC2 same region.*
 
