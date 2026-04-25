@@ -7,6 +7,24 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.0] — 2026-04-24
+
+### Added
+- **IAM authentication** — `arrowjet.connect(auth_type="iam")` fetches temporary credentials via `GetClusterCredentials` (provisioned) or `GetCredentials` (serverless). No password needed.
+- **Secrets Manager authentication** — `arrowjet.connect(auth_type="secrets_manager", secret_arn="...")` fetches credentials from AWS Secrets Manager.
+- **`arrowjet.auth.redshift` module** — standalone credential resolver with `ResolvedCredentials` object (`.as_kwargs()` for redshift_connector/psycopg2, `.as_uri()` for ADBC/SQLAlchemy). Works with any DBAPI driver.
+- **CLI `--auth-type` flag** — all CLI commands (export, import, validate, configure) support `--auth-type password|iam|secrets_manager` and `--secret-arn`.
+- **Serverless support** — IAM auth auto-detects provisioned vs serverless from the endpoint hostname.
+- **Write benchmark results** — six-lane comparison at 1M rows: executemany (27.1h), VALUES (195.8s), parallel VALUES (148.4s), manual COPY (4.06s), arrowjet (3.33s).
+- **Benchmark charts in README** — read and write benchmark visualizations now visible on GitHub and PyPI.
+
+### Changed
+- CLI connection handling centralized in `config.py` — all commands use the same auth resolution path.
+- `arrowjet.connect()` now accepts `auth_type`, `db_user`, `aws_region`, `aws_profile`, `secret_arn` parameters (all optional, backward compatible).
+- Connection URI encoding fixed for special characters in IAM temporary passwords.
+
+---
+
 ## [0.1.3] — 2026-04-21
 
 ### Fixed

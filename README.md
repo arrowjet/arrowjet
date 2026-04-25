@@ -26,6 +26,8 @@ Arrowjet routes through S3 instead — parallel, columnar, and fast.
 | Manual UNLOAD | ~7s | ~58s |
 | **Arrowjet** | **~4s** | **~34s** |
 
+![Read benchmark — 10M rows, 4-node ra3.large cluster](https://github.com/arrowjet/arrowjet/blob/main/docs/images/read_benchmark.png?raw=true)
+
 ### Writes (COPY)
 
 | Approach | 1M rows | vs Arrowjet |
@@ -37,7 +39,9 @@ Arrowjet routes through S3 instead — parallel, columnar, and fast.
 | Manual COPY | 4.06s | 1.22x slower |
 | **Arrowjet** | **3.33s** | **baseline** |
 
-*Benchmarked on a 4-node ra3.large cluster, EC2 same region.*
+![Write benchmark — 1M rows, 4-node ra3.large cluster](https://github.com/arrowjet/arrowjet/blob/main/docs/images/write_benchmark.png?raw=true)
+
+*Benchmarked on a 4-node ra3.large cluster, EC2 same region. 5 iterations, randomized order.*
 
 ---
 
