@@ -9,8 +9,10 @@ import os, sys, time, uuid, random
 from concurrent.futures import ThreadPoolExecutor
 import redshift_connector
 
-HOST = os.environ.get("REDSHIFT_HOST", "REDACTED_HOST")
-PASS = os.environ.get("REDSHIFT_PASS", "REDACTED")
+HOST = os.environ.get("REDSHIFT_HOST")
+PASS = os.environ.get("REDSHIFT_PASS")
+if not HOST or not PASS:
+    sys.exit("Error: REDSHIFT_HOST and REDSHIFT_PASS environment variables are required.")
 ROWS = int(os.environ.get("BENCH_ROWS", "1000000"))
 TARGET = f"insert_bench_{uuid.uuid4().hex[:8]}"
 BATCH = 5000
