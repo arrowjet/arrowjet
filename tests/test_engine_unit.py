@@ -1,6 +1,6 @@
 """
 Unit tests for the BYOC Engine — no AWS calls required.
-Tests that Engine accepts any DBAPI connection and delegates correctly.
+Tests both Redshift and PostgreSQL providers via unified Engine(provider=...).
 """
 
 from unittest.mock import MagicMock, patch
@@ -8,20 +8,32 @@ import pyarrow as pa
 import pandas as pd
 import pytest
 
+from arrowjet.engine import Engine
 
-def _make_engine(**overrides):
-    """Create an Engine with StagingManager validation mocked out."""
-    from arrowjet.engine import Engine
+
+# --- Helpers ---
+
+def _make_redshift_engine(**overrides):
+    """Create a Redshift Engine with StagingManager mocked out."""
     defaults = dict(
+        provider="redshift",
         staging_bucket="test-bucket",
         staging_iam_role="arn:aws:iam::123:role/test",
         staging_region="us-east-1",
     )
     defaults.update(overrides)
-    with patch("arrowjet.engine.StagingManager") as mock_sm:
-        mock_sm.return_value = MagicMock()
+    with patch("arrowjet.staging.manager.StagingManager") as mock_sm:
+        mock_config = MagicMock(bucket="test-bucket", region="us-east-1")
+        mock_sm.return_value.config = mock_config
         engine = Engine(**defaults)
+    engine._bulk_reader = MagicMock()
+    engine._bulk_writer = MagicMock()
     return engine
+
+
+def _make_pg_engine():
+    """Create a PostgreSQL Engine."""
+    return Engine(provider="postgresql")
 
 
 def _mock_read_result():
@@ -45,17 +57,51 @@ def _mock_write_result():
     )
 
 
-class TestEngineInit:
-    def test_repr(self):
-        engine = _make_engine()
-        assert "Engine(" in repr(engine)
+# --- Engine creation and provider selection ---
 
+class TestEngineProviderSelection:
+    def test_postgresql_provider(self):
+        engine = Engine(provider="postgresql")
+        assert engine.provider == "postgresql"
+        assert "postgresql" in repr(engine)
+
+    def test_redshift_provider(self):
+        engine = _make_redshift_engine()
+        assert engine.provider == "redshift"
+        assert "redshift" in repr(engine)
+
+    def test_unknown_provider_raises(self):
+        with pytest.raises(ValueError, match="Unknown provider"):
+            Engine(provider="mysql")
+
+    def test_no_provider_with_staging_defaults_to_redshift(self):
+        """Backward compat: Engine(staging_bucket=...) infers redshift."""
+        engine = _make_redshift_engine(provider=None)
+        assert engine.provider == "redshift"
+
+    def test_no_provider_no_staging_raises(self):
+        with pytest.raises(ValueError, match="provider is required"):
+            Engine()
+
+    def test_redshift_without_staging_raises(self):
+        with pytest.raises(ValueError, match="staging_bucket.*required"):
+            Engine(provider="redshift")
+
+    def test_postgresql_ignores_staging_params(self):
+        """PostgreSQL engine should work even if staging params are passed."""
+        engine = Engine(provider="postgresql", staging_bucket="ignored")
+        assert engine.provider == "postgresql"
+
+
+# --- Redshift Engine config ---
+
+class TestRedshiftEngineConfig:
     def test_staging_manager_receives_correct_config(self):
         from arrowjet.staging.config import CleanupPolicy, EncryptionMode
-        from arrowjet.engine import Engine
-        with patch("arrowjet.engine.StagingManager") as mock_sm:
+        with patch("arrowjet.staging.manager.StagingManager") as mock_sm:
             mock_sm.return_value = MagicMock()
             Engine(
+                provider="redshift",
                 staging_bucket="my-bucket",
                 staging_iam_role="arn:aws:iam::123:role/test",
                 staging_region="us-east-1",
@@ -71,121 +117,187 @@ class TestEngineInit:
 
     def test_default_cleanup_is_on_success(self):
         from arrowjet.staging.config import CleanupPolicy
-        from arrowjet.engine import Engine
-        with patch("arrowjet.engine.StagingManager") as mock_sm:
+        with patch("arrowjet.staging.manager.StagingManager") as mock_sm:
             mock_sm.return_value = MagicMock()
-            Engine(staging_bucket="b", staging_iam_role="r", staging_region="us-east-1")
+            Engine(provider="redshift", staging_bucket="b", staging_iam_role="r", staging_region="us-east-1")
         config_arg = mock_sm.call_args[1]["config"]
         assert config_arg.cleanup_policy == CleanupPolicy.ON_SUCCESS
 
     def test_default_encryption_is_none(self):
         from arrowjet.staging.config import EncryptionMode
-        from arrowjet.engine import Engine
-        with patch("arrowjet.engine.StagingManager") as mock_sm:
+        with patch("arrowjet.staging.manager.StagingManager") as mock_sm:
             mock_sm.return_value = MagicMock()
-            Engine(staging_bucket="b", staging_iam_role="r", staging_region="us-east-1")
+            Engine(provider="redshift", staging_bucket="b", staging_iam_role="r", staging_region="us-east-1")
         config_arg = mock_sm.call_args[1]["config"]
         assert config_arg.encryption == EncryptionMode.NONE
 
+    def test_repr_contains_bucket(self):
+        engine = _make_redshift_engine()
+        assert "test-bucket" in repr(engine)
 
-class TestEngineReadBulk:
-    def test_read_bulk_delegates_to_reader(self):
-        engine = _make_engine()
+
+# --- Read delegation (parameterized) ---
+
+class TestRedshiftReadBulk:
+    def test_read_delegates_to_reader(self):
+        engine = _make_redshift_engine()
         mock_conn = MagicMock()
         expected = _mock_read_result()
+        engine._bulk_reader.read.return_value = expected
 
-        with patch.object(engine._bulk_reader, "read", return_value=expected) as mock_read:
-            result = engine.read_bulk(mock_conn, "SELECT * FROM t")
+        result = engine.read_bulk(mock_conn, "SELECT * FROM t")
 
-        mock_read.assert_called_once_with(
+        engine._bulk_reader.read.assert_called_once_with(
             mock_conn, "SELECT * FROM t",
             autocommit=True, explicit_mode=True,
         )
         assert result is expected
 
-    def test_read_bulk_passes_kwargs(self):
-        engine = _make_engine()
+    def test_read_passes_kwargs(self):
+        engine = _make_redshift_engine()
         mock_conn = MagicMock()
         expected = _mock_read_result()
+        engine._bulk_reader.read.return_value = expected
 
-        with patch.object(engine._bulk_reader, "read", return_value=expected) as mock_read:
-            engine.read_bulk(mock_conn, "SELECT 1", parallel=False)
+        engine.read_bulk(mock_conn, "SELECT 1", parallel=False)
 
-        mock_read.assert_called_once_with(
+        engine._bulk_reader.read.assert_called_once_with(
             mock_conn, "SELECT 1",
             autocommit=True, explicit_mode=True, parallel=False,
         )
 
-    def test_read_bulk_accepts_any_dbapi_conn(self):
-        """Engine only needs conn.cursor() — any DBAPI connection works."""
-        engine = _make_engine()
+    def test_read_accepts_any_dbapi_conn(self):
+        engine = _make_redshift_engine()
         expected = _mock_read_result()
-        for driver_name in ["redshift_connector", "psycopg2", "adbc"]:
-            mock_conn = MagicMock(name=driver_name)
-            with patch.object(engine._bulk_reader, "read", return_value=expected):
-                result = engine.read_bulk(mock_conn, "SELECT 1")
+        engine._bulk_reader.read.return_value = expected
+        for name in ["redshift_connector", "psycopg2", "adbc"]:
+            mock_conn = MagicMock(name=name)
+            result = engine.read_bulk(mock_conn, "SELECT 1")
             assert result.rows == 3
 
 
-class TestEngineWriteBulk:
-    def test_write_bulk_delegates_to_writer(self):
-        engine = _make_engine()
+class TestPostgreSQLReadBulk:
+    def test_read_calls_copy_protocol(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+
+        # Mock copy_expert to return CSV data
+        def fake_copy_out(sql, buf):
+            buf.write(b"id\n1\n2\n3\n")
+        mock_conn.cursor.return_value.copy_expert.side_effect = fake_copy_out
+
+        result = engine.read_bulk(mock_conn, "SELECT id FROM t")
+        assert result.rows == 3
+
+    def test_read_empty_result(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert.side_effect = lambda sql, buf: None
+
+        result = engine.read_bulk(mock_conn, "SELECT * FROM empty")
+        assert result.rows == 0
+
+
+# --- Write delegation (parameterized) ---
+
+class TestRedshiftWriteBulk:
+    def test_write_delegates_to_writer(self):
+        engine = _make_redshift_engine()
         mock_conn = MagicMock()
         table = pa.table({"id": [1, 2, 3]})
         expected = _mock_write_result()
+        engine._bulk_writer.write.return_value = expected
 
-        with patch.object(engine._bulk_writer, "write", return_value=expected) as mock_write:
-            result = engine.write_bulk(mock_conn, table, "target_table")
+        result = engine.write_bulk(mock_conn, table, "target_table")
 
-        mock_write.assert_called_once_with(mock_conn, table, "target_table")
+        engine._bulk_writer.write.assert_called_once_with(mock_conn, table, "target_table")
         assert result is expected
 
     def test_write_dataframe_converts_to_arrow(self):
-        engine = _make_engine()
+        engine = _make_redshift_engine()
         mock_conn = MagicMock()
         df = pd.DataFrame({"id": [1, 2, 3], "val": ["a", "b", "c"]})
         expected = _mock_write_result()
+        engine._bulk_writer.write.return_value = expected
 
-        with patch.object(engine._bulk_writer, "write", return_value=expected) as mock_write:
-            result = engine.write_dataframe(mock_conn, df, "target_table")
+        result = engine.write_dataframe(mock_conn, df, "target_table")
 
-        call_args = mock_write.call_args
+        call_args = engine._bulk_writer.write.call_args
         assert isinstance(call_args[0][1], pa.Table)
         assert call_args[0][1].num_rows == 3
         assert result is expected
 
 
+class TestPostgreSQLWriteBulk:
+    def test_write_calls_copy_protocol(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        table = pa.table({"id": pa.array([1, 2], type=pa.int64())})
+
+        result = engine.write_bulk(mock_conn, table, "test_table")
+
+        cursor = mock_conn.cursor.return_value
+        assert cursor.copy_expert.called
+        assert result.rows == 2
+
+    def test_write_dataframe(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        df = pd.DataFrame({"id": [1, 2, 3]})
+
+        result = engine.write_dataframe(mock_conn, df, "test_table")
+        assert result.rows == 3
+
+
+# --- Connection ownership ---
+
 class TestEngineDoesNotOwnConnection:
-    def test_engine_does_not_close_conn(self):
-        """Engine must not close the user's connection."""
-        engine = _make_engine()
+    def test_redshift_does_not_close_conn(self):
+        engine = _make_redshift_engine()
         mock_conn = MagicMock()
         expected = _mock_read_result()
+        engine._bulk_reader.read.return_value = expected
 
-        with patch.object(engine._bulk_reader, "read", return_value=expected):
-            engine.read_bulk(mock_conn, "SELECT 1")
+        engine.read_bulk(mock_conn, "SELECT 1")
+        mock_conn.close.assert_not_called()
 
+    def test_postgresql_does_not_close_conn(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert.side_effect = lambda sql, buf: buf.write(b"id\n1\n")
+
+        engine.read_bulk(mock_conn, "SELECT 1")
         mock_conn.close.assert_not_called()
 
     def test_multiple_conns_same_engine(self):
-        """Same engine can be used with different connections."""
-        engine = _make_engine()
-        conn1, conn2 = MagicMock(name="conn1"), MagicMock(name="conn2")
+        engine = _make_redshift_engine()
         expected = _mock_read_result()
+        engine._bulk_reader.read.return_value = expected
 
-        with patch.object(engine._bulk_reader, "read", return_value=expected):
-            r1 = engine.read_bulk(conn1, "SELECT 1")
-            r2 = engine.read_bulk(conn2, "SELECT 2")
-
+        conn1, conn2 = MagicMock(name="conn1"), MagicMock(name="conn2")
+        r1 = engine.read_bulk(conn1, "SELECT 1")
+        r2 = engine.read_bulk(conn2, "SELECT 2")
         assert r1.rows == r2.rows == 3
 
+
+# --- Public API ---
 
 class TestEnginePublicAPI:
     def test_engine_exported_from_arrowjet(self):
         import arrowjet
         assert hasattr(arrowjet, "Engine")
-        assert arrowjet.Engine is not None
 
     def test_engine_in_all(self):
         import arrowjet
         assert "Engine" in arrowjet.__all__
+
+    def test_postgresql_engine_alias_works(self):
+        import arrowjet
+        engine = arrowjet.PostgreSQLEngine()
+        assert engine.provider == "postgresql"
+
+    def test_provider_property(self):
+        pg = _make_pg_engine()
+        rs = _make_redshift_engine()
+        assert pg.provider == "postgresql"
+        assert rs.provider == "redshift"

@@ -241,6 +241,6 @@ def make_pg_connection(params: dict):
 
 
 def make_pg_engine():
-    """Create a PostgreSQLEngine instance."""
-    from arrowjet.engine import PostgreSQLEngine
-    return PostgreSQLEngine()
+    """Create a PostgreSQL Engine instance."""
+    from arrowjet.engine import Engine
+    return Engine(provider="postgresql")

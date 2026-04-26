@@ -266,3 +266,107 @@ class TestPreviewLocalFile:
         runner = CliRunner()
         result = runner.invoke(cli, ["preview", "--file", "/nonexistent/path.parquet"])
         assert result.exit_code != 0
+
+
+# ── PostgreSQL CLI tests ──────────────────────────────────────────────────────
+
+class TestExportProviderFlag:
+    """Test that --provider flag is accepted and routes correctly."""
+
+    def test_export_help_shows_provider_option(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["export", "--help"])
+        assert "--provider" in result.output
+        assert "postgresql" in result.output
+
+    def test_export_postgresql_missing_host_shows_pg_error(self, monkeypatch):
+        """PostgreSQL error message should mention PG_HOST, not REDSHIFT_HOST."""
+        for var in ["PG_HOST", "PG_PASS", "PG_USER", "PG_DATABASE",
+                     "REDSHIFT_HOST", "REDSHIFT_PASS", "STAGING_BUCKET",
+                     "STAGING_IAM_ROLE", "STAGING_REGION", "REDSHIFT_AUTH_SECRET_ARN"]:
+            monkeypatch.delenv(var, raising=False)
+        runner = CliRunner()
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
+            result = runner.invoke(cli, [
+                "export", "--provider", "postgresql",
+                "--query", "SELECT 1", "--to", "/tmp/out.parquet",
+            ])
+        assert result.exit_code != 0 or "Error" in result.output
+        assert "PG_HOST" in result.output or "PostgreSQL" in result.output
+
+    def test_export_postgresql_missing_password_shows_pg_error(self, monkeypatch):
+        for var in ["PG_PASS", "REDSHIFT_PASS", "STAGING_BUCKET",
+                     "STAGING_IAM_ROLE", "STAGING_REGION", "REDSHIFT_AUTH_SECRET_ARN"]:
+            monkeypatch.delenv(var, raising=False)
+        monkeypatch.setenv("PG_HOST", "my-pg-host")
+        runner = CliRunner()
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
+            result = runner.invoke(cli, [
+                "export", "--provider", "postgresql",
+                "--query", "SELECT 1", "--to", "/tmp/out.parquet",
+            ])
+        assert result.exit_code != 0 or "Error" in result.output
+        assert "PG_PASS" in result.output or "Password" in result.output
+
+
+class TestConfigResolvePostgreSQL:
+    """Test that config resolution uses PG_* env vars for postgresql provider."""
+
+    def test_pg_env_vars_used(self, monkeypatch):
+        from arrowjet.cli.config import resolve_cli_connection_params
+        monkeypatch.setenv("PG_HOST", "pg-host.example.com")
+        monkeypatch.setenv("PG_PASS", "pgpass123")
+        monkeypatch.setenv("PG_DATABASE", "mydb")
+        monkeypatch.setenv("PG_USER", "pguser")
+        monkeypatch.setenv("PG_PORT", "5433")
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
+            params = resolve_cli_connection_params(
+                profile=None, host=None, database=None, user=None, password=None,
+                staging_bucket=None, iam_role=None, region=None,
+                provider="postgresql",
+            )
+        assert params["provider"] == "postgresql"
+        assert params["host"] == "pg-host.example.com"
+        assert params["password"] == "pgpass123"
+        assert params["database"] == "mydb"
+        assert params["user"] == "pguser"
+        assert params["port"] == 5433
+
+    def test_redshift_env_vars_used_by_default(self, monkeypatch):
+        from arrowjet.cli.config import resolve_cli_connection_params
+        monkeypatch.setenv("REDSHIFT_HOST", "rs-host.example.com")
+        monkeypatch.setenv("REDSHIFT_PASS", "rspass")
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
+            params = resolve_cli_connection_params(
+                profile=None, host=None, database=None, user=None, password=None,
+                staging_bucket=None, iam_role=None, region=None,
+            )
+        assert params["provider"] == "redshift"
+        assert params["host"] == "rs-host.example.com"
+
+    def test_profile_provider_field(self, monkeypatch):
+        """Provider can come from the profile config."""
+        from arrowjet.cli.config import resolve_cli_connection_params
+        profile = {"provider": "postgresql", "host": "aurora.example.com", "password": "pass"}
+        with patch("arrowjet.cli.config.get_profile", return_value=profile):
+            params = resolve_cli_connection_params(
+                profile="my-aurora", host=None, database=None, user=None, password=None,
+                staging_bucket=None, iam_role=None, region=None,
+            )
+        assert params["provider"] == "postgresql"
+        assert params["host"] == "aurora.example.com"
+
+    def test_cli_provider_overrides_profile(self, monkeypatch):
+        """CLI --provider flag should override profile provider."""
+        from arrowjet.cli.config import resolve_cli_connection_params
+        profile = {"provider": "redshift", "host": "rs.example.com", "password": "pass"}
+        monkeypatch.setenv("PG_HOST", "pg.example.com")
+        monkeypatch.setenv("PG_PASS", "pgpass")
+        with patch("arrowjet.cli.config.get_profile", return_value=profile):
+            params = resolve_cli_connection_params(
+                profile="my-profile", host=None, database=None, user=None, password=None,
+                staging_bucket=None, iam_role=None, region=None,
+                provider="postgresql",
+            )
+        assert params["provider"] == "postgresql"
+        assert params["host"] == "pg.example.com"

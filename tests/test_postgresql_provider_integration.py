@@ -321,4 +321,4 @@ class TestPostgreSQLEngine:
     def test_engine_no_s3_required(self):
         """PostgreSQLEngine should not require any S3/staging config."""
         engine = PostgreSQLEngine()
-        assert "COPY" in repr(engine)
+        assert "postgresql" in repr(engine)

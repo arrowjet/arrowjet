@@ -273,7 +273,7 @@ class TestReadBulk:
 class TestPostgreSQLEngine:
     def test_engine_creation(self):
         engine = PostgreSQLEngine()
-        assert repr(engine) == "PostgreSQLEngine(protocol=COPY)"
+        assert repr(engine) == "Engine(provider=postgresql)"
 
     def test_engine_read_bulk(self, mock_conn):
         def fake_copy_out(sql, buf):

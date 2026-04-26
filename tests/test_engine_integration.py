@@ -187,3 +187,143 @@ class TestEngineVsConnect:
             assert byoc_result.rows == connect_result.rows
         finally:
             _drop_table(user_conn, "byoc_test_equiv")
+
+
+# --- PostgreSQL Engine Integration Tests ---
+
+import time
+
+PG_HOST = os.environ.get("PG_HOST")
+PG_PASS = os.environ.get("PG_PASS")
+
+
+@pytest.mark.skipif(
+    not PG_HOST or not PG_PASS,
+    reason="PG_HOST and PG_PASS not set",
+)
+class TestPostgreSQLEngineReadBulk:
+    """Test Engine(provider='postgresql') read operations against real RDS PostgreSQL."""
+
+    @pytest.fixture
+    def pg_conn(self):
+        import psycopg2
+        conn = psycopg2.connect(
+            host=PG_HOST,
+            port=int(os.environ.get("PG_PORT", "5432")),
+            dbname=os.environ.get("PG_DATABASE", "dev"),
+            user=os.environ.get("PG_USER", "awsuser"),
+            password=PG_PASS,
+            connect_timeout=10,
+        )
+        yield conn
+        conn.close()
+
+    @pytest.fixture
+    def pg_engine(self):
+        return Engine(provider="postgresql")
+
+    @pytest.fixture
+    def populated_table(self, pg_conn):
+        table_name = f"engine_pg_read_{int(time.time())}"
+        cursor = pg_conn.cursor()
+        cursor.execute(f"CREATE TABLE {table_name} (id BIGINT, value DOUBLE PRECISION)")
+        for i in range(0, 500, 100):
+            values = ",".join(f"({j}, {j * 1.5})" for j in range(i, min(i + 100, 500)))
+            cursor.execute(f"INSERT INTO {table_name} VALUES {values}")
+        pg_conn.commit()
+        yield table_name
+        cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+        pg_conn.commit()
+
+    def test_read_bulk_returns_result(self, pg_conn, pg_engine, populated_table):
+        result = pg_engine.read_bulk(pg_conn, f"SELECT * FROM {populated_table}")
+        assert result.rows == 500
+        assert result.table.num_columns == 2
+
+    def test_read_bulk_to_pandas(self, pg_conn, pg_engine, populated_table):
+        result = pg_engine.read_bulk(pg_conn, f"SELECT * FROM {populated_table}")
+        df = result.to_pandas()
+        assert len(df) == 500
+        assert "id" in df.columns
+
+    def test_read_with_where(self, pg_conn, pg_engine, populated_table):
+        result = pg_engine.read_bulk(pg_conn, f"SELECT * FROM {populated_table} WHERE id < 10")
+        assert result.rows == 10
+
+    def test_engine_does_not_close_user_conn(self, pg_conn, pg_engine, populated_table):
+        pg_engine.read_bulk(pg_conn, f"SELECT * FROM {populated_table}")
+        cursor = pg_conn.cursor()
+        cursor.execute("SELECT 1")
+        assert cursor.fetchone()[0] == 1
+
+
+@pytest.mark.skipif(
+    not PG_HOST or not PG_PASS,
+    reason="PG_HOST and PG_PASS not set",
+)
+class TestPostgreSQLEngineWriteBulk:
+    """Test Engine(provider='postgresql') write operations against real RDS PostgreSQL."""
+
+    @pytest.fixture
+    def pg_conn(self):
+        import psycopg2
+        conn = psycopg2.connect(
+            host=PG_HOST,
+            port=int(os.environ.get("PG_PORT", "5432")),
+            dbname=os.environ.get("PG_DATABASE", "dev"),
+            user=os.environ.get("PG_USER", "awsuser"),
+            password=PG_PASS,
+            connect_timeout=10,
+        )
+        yield conn
+        conn.close()
+
+    @pytest.fixture
+    def pg_engine(self):
+        return Engine(provider="postgresql")
+
+    @pytest.fixture
+    def test_table(self, pg_conn):
+        table_name = f"engine_pg_write_{int(time.time())}"
+        cursor = pg_conn.cursor()
+        cursor.execute(f"CREATE TABLE {table_name} (id BIGINT, val DOUBLE PRECISION)")
+        pg_conn.commit()
+        yield table_name
+        cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+        pg_conn.commit()
+
+    def test_write_bulk_arrow_table(self, pg_conn, pg_engine, test_table):
+        table = pa.table({"id": list(range(100)), "val": [float(i) for i in range(100)]})
+        result = pg_engine.write_bulk(pg_conn, table, test_table)
+        assert result.rows == 100
+
+        cursor = pg_conn.cursor()
+        cursor.execute(f"SELECT COUNT(*) FROM {test_table}")
+        assert cursor.fetchone()[0] == 100
+
+    def test_write_dataframe(self, pg_conn, pg_engine, test_table):
+        import pandas as pd_
+        df = pd_.DataFrame({"id": list(range(50)), "val": [float(i) for i in range(50)]})
+        result = pg_engine.write_dataframe(pg_conn, df, test_table)
+        assert result.rows == 50
+
+    def test_roundtrip(self, pg_conn, pg_engine, test_table):
+        """Write then read back — verify data integrity."""
+        table = pa.table({"id": pa.array([10, 20, 30], type=pa.int64()),
+                          "val": pa.array([1.1, 2.2, 3.3], type=pa.float64())})
+        pg_engine.write_bulk(pg_conn, table, test_table)
+
+        result = pg_engine.read_bulk(pg_conn, f"SELECT * FROM {test_table} ORDER BY id")
+        df = result.to_pandas()
+        assert list(df["id"]) == [10, 20, 30]
+
+
+@pytest.mark.skipif(
+    not PG_HOST or not PG_PASS,
+    reason="PG_HOST and PG_PASS not set",
+)
+class TestPostgreSQLEngineRepr:
+    def test_repr(self):
+        engine = Engine(provider="postgresql")
+        assert "postgresql" in repr(engine)
+        assert "Engine(" in repr(engine)

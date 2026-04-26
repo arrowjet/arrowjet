@@ -71,7 +71,7 @@ import psycopg2
 
 conn = psycopg2.connect(host="your-host", dbname="mydb", user="user", password="...")
 
-engine = arrowjet.PostgreSQLEngine()
+engine = arrowjet.Engine(provider="postgresql")
 
 # Bulk write — 850x faster than executemany
 engine.write_dataframe(conn, my_dataframe, "target_table")
@@ -119,12 +119,13 @@ Already have connection management? Arrowjet works with your existing connection
 import arrowjet
 
 # PostgreSQL — no staging config needed
-pg_engine = arrowjet.PostgreSQLEngine()
+pg_engine = arrowjet.Engine(provider="postgresql")
 pg_engine.write_dataframe(existing_pg_conn, df, "my_table")
 result = pg_engine.read_bulk(existing_pg_conn, "SELECT * FROM my_table")
 
 # Redshift — needs S3 staging config
 rs_engine = arrowjet.Engine(
+    provider="redshift",
     staging_bucket="your-bucket",
     staging_iam_role="arn:aws:iam::123:role/RedshiftS3Role",
     staging_region="us-east-1",
@@ -192,7 +193,7 @@ See [docs/configuration.md](https://github.com/arrowjet/arrowjet/blob/main/docs/
 def export_from_postgres():
     import arrowjet, psycopg2
     conn = psycopg2.connect(host=..., dbname=..., ...)
-    engine = arrowjet.PostgreSQLEngine()
+    engine = arrowjet.Engine(provider="postgresql")
     result = engine.read_bulk(conn, "SELECT * FROM events")
     # write to S3, transform, etc.
     conn.close()
