@@ -30,7 +30,8 @@ from .config import (
 @click.option("--to", "destination", required=True, help="Destination: s3://bucket/path or local file path")
 @click.option("--format", "fmt", default="parquet", type=click.Choice(["parquet", "csv"]), help="Output format")
 @click.option("--profile", default=None, help="Config profile name")
-@click.option("--host", default=None, help="Redshift host (overrides profile)")
+@click.option("--provider", default=None, type=click.Choice(["redshift", "postgresql"]), help="Database provider")
+@click.option("--host", default=None, help="Database host (overrides profile)")
 @click.option("--database", default=None, help="Database (overrides profile)")
 @click.option("--user", default=None, help="User (overrides profile)")
 @click.option("--password", default=None, help="Password (overrides profile)")
@@ -41,13 +42,14 @@ from .config import (
 @click.option("--iam-role", default=None, help="IAM role ARN (overrides profile)")
 @click.option("--region", default=None, help="AWS region (overrides profile)")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-def export(query, destination, fmt, profile, host, database, user, password,
+def export(query, destination, fmt, profile, provider, host, database, user, password,
            auth_type, secret_arn, staging_bucket, iam_role, region, verbose):
-    """Export query results from Redshift to S3 or local file."""
+    """Export query results from a database to S3 or local file."""
     params = resolve_cli_connection_params(
         profile, host, database, user, password,
         staging_bucket, iam_role, region,
         auth_type=auth_type, secret_arn=secret_arn,
+        provider=provider,
     )
 
     err = validate_connection_params(params)
@@ -68,6 +70,30 @@ def export(query, destination, fmt, profile, host, database, user, password,
                              params["auth_type"], params["profile_name"])
     start = time.perf_counter()
 
+    # --- PostgreSQL path: COPY protocol (no S3 staging needed) ---
+    if params.get("provider") == "postgresql":
+        from .config import make_pg_connection, make_pg_engine
+
+        conn = make_pg_connection(params)
+        engine = make_pg_engine()
+
+        click.echo("Exporting via COPY TO STDOUT (PostgreSQL)...")
+        result = engine.read_bulk(conn, query)
+        table = result.table
+        rows = result.rows
+        conn.close()
+
+        if fmt == "parquet":
+            import pyarrow.parquet as pq
+            pq.write_table(table, destination)
+        elif fmt == "csv":
+            table.to_pandas().to_csv(destination, index=False)
+
+        elapsed = time.perf_counter() - start
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")
+        return
+
+    # --- Redshift path ---
     if is_s3 and params["staging_iam_role"]:
         # S3 destination: UNLOAD directly to the destination path.
         from arrowjet.providers.redshift import RedshiftProvider

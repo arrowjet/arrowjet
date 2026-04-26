@@ -21,7 +21,7 @@ from .cmd_validate import validate
 @click.group()
 @click.version_option(__version__, "--version", "-v")
 def cli():
-    """arrowjet: Fast, simple bulk data movement for Redshift."""
+    """arrowjet: Fast bulk data movement for cloud databases."""
     pass
 
 

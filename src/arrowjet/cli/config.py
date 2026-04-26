@@ -87,7 +87,7 @@ def print_connection_context(host: str, database: str, auth_type: str = "passwor
 
 def resolve_cli_connection_params(profile, host, database, user, password,
                                   staging_bucket, iam_role, region, auth_type=None,
-                                  secret_arn=None) -> dict:
+                                  secret_arn=None, provider=None) -> dict:
     """
     Resolve all connection parameters from CLI flags, env vars, and profile.
 
@@ -96,10 +96,24 @@ def resolve_cli_connection_params(profile, host, database, user, password,
     """
     prof = get_profile(profile)
 
-    resolved_host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
-    resolved_database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
-    resolved_user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
-    resolved_password = resolve_option(password, "password", "REDSHIFT_PASS", prof) or ""
+    # Determine provider: CLI flag > profile > default (redshift)
+    resolved_provider = provider or prof.get("provider", "redshift")
+
+    if resolved_provider == "postgresql":
+        # PostgreSQL uses PG_* env vars
+        resolved_host = resolve_option(host, "host", "PG_HOST", prof)
+        resolved_database = resolve_option(database, "database", "PG_DATABASE", prof) or "dev"
+        resolved_user = resolve_option(user, "user", "PG_USER", prof) or "postgres"
+        resolved_password = resolve_option(password, "password", "PG_PASS", prof) or ""
+        resolved_port = int(prof.get("port", os.environ.get("PG_PORT", "5432")))
+    else:
+        # Redshift uses REDSHIFT_* env vars
+        resolved_host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
+        resolved_database = resolve_option(database, "database", "REDSHIFT_DATABASE", prof) or "dev"
+        resolved_user = resolve_option(user, "user", "REDSHIFT_USER", prof) or "awsuser"
+        resolved_password = resolve_option(password, "password", "REDSHIFT_PASS", prof) or ""
+        resolved_port = int(prof.get("port", os.environ.get("REDSHIFT_PORT", "5439")))
+
     resolved_bucket = resolve_option(staging_bucket, "staging_bucket", "STAGING_BUCKET", prof)
     resolved_iam_role = resolve_option(iam_role, "staging_iam_role", "STAGING_IAM_ROLE", prof)
     resolved_region = resolve_option(region, "staging_region", "STAGING_REGION", prof) or "us-east-1"
@@ -107,7 +121,9 @@ def resolve_cli_connection_params(profile, host, database, user, password,
     resolved_secret_arn = resolve_option(secret_arn, "secret_arn", "REDSHIFT_AUTH_SECRET_ARN", prof)
 
     return {
+        "provider": resolved_provider,
         "host": resolved_host,
+        "port": resolved_port,
         "database": resolved_database,
         "user": resolved_user,
         "password": resolved_password,
@@ -127,10 +143,16 @@ def validate_connection_params(params: dict) -> Optional[str]:
     Returns an error message string, or None if valid.
     """
     if not params["host"]:
+        provider = params.get("provider", "redshift")
+        if provider == "postgresql":
+            return "PostgreSQL host required. Run 'arrowjet configure' or set PG_HOST."
         return "Redshift host required. Run 'arrowjet configure' or set REDSHIFT_HOST."
 
     auth = params["auth_type"]
     if auth == "password" and not params["password"]:
+        provider = params.get("provider", "redshift")
+        if provider == "postgresql":
+            return "Password required. Use --password, set PG_PASS, or configure a profile."
         return "Password required for password auth. Use --password, set REDSHIFT_PASS, or switch to auth_type=iam."
     if auth == "secrets_manager" and not params["secret_arn"]:
         return "secret_arn required for Secrets Manager auth."
@@ -199,3 +221,26 @@ def make_raw_connection(params: dict):
     conn = redshift_connector.connect(**creds.as_kwargs())
     conn.autocommit = True
     return conn
+
+
+def make_pg_connection(params: dict):
+    """
+    Create a psycopg2 connection for PostgreSQL/Aurora/RDS.
+    """
+    import psycopg2
+
+    conn = psycopg2.connect(
+        host=params["host"],
+        port=params.get("port", 5432),
+        dbname=params["database"],
+        user=params["user"],
+        password=params["password"],
+        connect_timeout=10,
+    )
+    return conn
+
+
+def make_pg_engine():
+    """Create a PostgreSQLEngine instance."""
+    from arrowjet.engine import PostgreSQLEngine
+    return PostgreSQLEngine()

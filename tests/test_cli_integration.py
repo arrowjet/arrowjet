@@ -411,3 +411,90 @@ class TestCliSecretsManagerAuth:
         ])
         assert result.exit_code == 0, result.output
         assert "1,000,000" in result.output
+
+# --- PostgreSQL CLI Integration Tests ---
+
+PG_HOST = os.environ.get("PG_HOST", "")
+PG_PASS = os.environ.get("PG_PASS", "")
+
+
+@pytest.mark.skipif(
+    not os.environ.get("PG_HOST") or not os.environ.get("PG_PASS"),
+    reason="PG_HOST and PG_PASS not set",
+)
+class TestPostgreSQLExportIntegration:
+    """Test CLI export with --provider postgresql against real RDS PostgreSQL."""
+
+    def test_pg_export_to_local_parquet(self, tmp_path):
+        out = str(tmp_path / "pg_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "postgresql",
+            "--query", "SELECT generate_series(1, 100) AS id",
+            "--to", out,
+            "--host", PG_HOST,
+            "--password", PG_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Exported" in result.output
+        assert "100" in result.output
+        assert os.path.exists(out)
+
+    def test_pg_export_to_local_csv(self, tmp_path):
+        out = str(tmp_path / "pg_out.csv")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "postgresql",
+            "--query", "SELECT generate_series(1, 50) AS id",
+            "--to", out,
+            "--format", "csv",
+            "--host", PG_HOST,
+            "--password", PG_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Exported" in result.output
+        assert "50" in result.output
+        assert os.path.exists(out)
+
+    def test_pg_export_shows_connection_context(self, tmp_path):
+        out = str(tmp_path / "pg_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "postgresql",
+            "--query", "SELECT 1 AS x",
+            "--to", out,
+            "--host", PG_HOST,
+            "--password", PG_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Connected:" in result.output
+
+    def test_pg_export_uses_copy_protocol(self, tmp_path):
+        out = str(tmp_path / "pg_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "postgresql",
+            "--query", "SELECT 1 AS x",
+            "--to", out,
+            "--host", PG_HOST,
+            "--password", PG_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "COPY TO STDOUT" in result.output
+
+    def test_pg_export_invalid_query_fails(self, tmp_path):
+        out = str(tmp_path / "pg_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "postgresql",
+            "--query", "SELECT * FROM nonexistent_table_xyz",
+            "--to", out,
+            "--host", PG_HOST,
+            "--password", PG_PASS,
+        ])
+        assert result.exit_code != 0
