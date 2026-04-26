@@ -72,7 +72,7 @@ class TestEngineProviderSelection:
 
     def test_unknown_provider_raises(self):
         with pytest.raises(ValueError, match="Unknown provider"):
-            Engine(provider="mysql")
+            Engine(provider="oracle")
 
     def test_no_provider_with_staging_defaults_to_redshift(self):
         """Backward compat: Engine(staging_bucket=...) infers redshift."""

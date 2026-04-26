@@ -7,9 +7,9 @@ The core engine is provider-agnostic.
 Supported providers:
   - RedshiftProvider: Amazon Redshift (UNLOAD/COPY via S3)
   - PostgreSQLProvider: PostgreSQL / Aurora PostgreSQL / RDS PostgreSQL (COPY protocol)
+  - MySQLProvider: MySQL / Aurora MySQL / RDS MySQL (LOAD DATA LOCAL INFILE)
 
 Planned providers:
-  - MySQLProvider: MySQL / Aurora MySQL (LOAD DATA)
   - SnowflakeProvider: Snowflake (COPY INTO via S3/GCS/Azure)
   - BigQueryProvider: BigQuery (Storage Read API / GCS export)
   - DatabricksProvider: Databricks (COPY INTO via cloud storage)
@@ -18,8 +18,9 @@ Planned providers:
 from .base import BulkProvider, ExportCommand, ImportCommand
 from .redshift import RedshiftProvider
 from .postgresql import PostgreSQLProvider
+from .mysql import MySQLProvider
 
 __all__ = [
     "BulkProvider", "ExportCommand", "ImportCommand",
-    "RedshiftProvider", "PostgreSQLProvider",
+    "RedshiftProvider", "PostgreSQLProvider", "MySQLProvider",
 ]

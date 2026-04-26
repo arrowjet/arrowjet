@@ -85,6 +85,8 @@ class Engine:
 
         if provider == "postgresql":
             self._init_postgresql()
+        elif provider == "mysql":
+            self._init_mysql()
         elif provider == "redshift":
             self._init_redshift(
                 staging_bucket=staging_bucket,
@@ -104,7 +106,7 @@ class Engine:
         else:
             raise ValueError(
                 f"Unknown provider: '{provider}'. "
-                f"Supported: 'postgresql', 'redshift'."
+                f"Supported: 'postgresql', 'mysql', 'redshift'."
             )
 
     def _init_postgresql(self):
@@ -112,7 +114,16 @@ class Engine:
         from .providers.postgresql import PostgreSQLProvider
         self._pg_provider = PostgreSQLProvider()
         self._is_pg = True
+        self._is_mysql = False
         logger.info("Arrowjet Engine ready (provider=postgresql, COPY protocol)")
+
+    def _init_mysql(self):
+        """Initialize MySQL provider (LOAD DATA LOCAL INFILE, no staging)."""
+        from .providers.mysql import MySQLProvider
+        self._mysql_provider = MySQLProvider()
+        self._is_pg = False
+        self._is_mysql = True
+        logger.info("Arrowjet Engine ready (provider=mysql, LOAD DATA LOCAL INFILE)")
 
     def _init_redshift(self, **kwargs):
         """Initialize Redshift provider (COPY/UNLOAD via S3)."""
@@ -160,6 +171,7 @@ class Engine:
         self._bulk_reader = BulkReader(self._staging_manager)
         self._bulk_writer = BulkWriter(self._staging_manager)
         self._is_pg = False
+        self._is_mysql = False
 
         logger.info(
             "Arrowjet Engine ready (provider=redshift, bucket=%s)",
@@ -182,6 +194,8 @@ class Engine:
         """
         if self._is_pg:
             return self._pg_provider.read_bulk(conn, query)
+        if self._is_mysql:
+            return self._mysql_provider.read_bulk(conn, query)
         return self._bulk_reader.read(
             conn, query, autocommit=True, explicit_mode=True, **kwargs
         )
@@ -203,6 +217,8 @@ class Engine:
         """
         if self._is_pg:
             return self._pg_provider.write_bulk(conn, table, target_table)
+        if self._is_mysql:
+            return self._mysql_provider.write_bulk(conn, table, target_table)
         return self._bulk_writer.write(conn, table, target_table, **kwargs)
 
     def write_dataframe(self, conn, df, target_table: str, **kwargs):
@@ -219,6 +235,8 @@ class Engine:
         """
         if self._is_pg:
             return self._pg_provider.write_dataframe(conn, df, target_table)
+        if self._is_mysql:
+            return self._mysql_provider.write_dataframe(conn, df, target_table)
         table = pa.Table.from_pandas(df, preserve_index=False)
         return self.write_bulk(conn, table, target_table, **kwargs)
 
@@ -230,6 +248,8 @@ class Engine:
     def __repr__(self):
         if self._is_pg:
             return "Engine(provider=postgresql)"
+        if self._is_mysql:
+            return "Engine(provider=mysql)"
         cfg = self._staging_manager.config
         return f"Engine(provider=redshift, bucket={cfg.bucket})"
 
