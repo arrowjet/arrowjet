@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "arrowjet"
-version = "0.3.0"
+version = "0.4.0"
 description = "High-performance bulk data movement for Redshift"
 readme = "README.md"
 license = {text = "MIT"}
@@ -42,6 +42,9 @@ Repository = "https://github.com/arrowjet/arrowjet"
 postgresql = [
     "psycopg2-binary>=2.9.0",
 ]
+mysql = [
+    "pymysql>=1.1.0",
+]
 redshift = [
     "redshift-connector>=2.1.0",
     "adbc-driver-postgresql>=1.0.0",
@@ -50,6 +53,7 @@ redshift = [
 sqlalchemy = ["sqlalchemy>=2.0.0"]
 full = [
     "psycopg2-binary>=2.9.0",
+    "pymysql>=1.1.0",
     "redshift-connector>=2.1.0",
     "adbc-driver-postgresql>=1.0.0",
     "adbc-driver-manager>=1.0.0",

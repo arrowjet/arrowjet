@@ -5,13 +5,14 @@
 Arrowjet wraps each database's native bulk path in a simple Python API — no boilerplate, no S3 scripts, no slow INSERT loops.
 
 ```bash
-pip install arrowjet              # core (PostgreSQL COPY, BYOC Engine, CLI)
+pip install arrowjet              # core (PostgreSQL COPY, MySQL LOAD DATA, BYOC Engine, CLI)
 pip install arrowjet[redshift]    # + Redshift driver (arrowjet.connect())
-pip install arrowjet[full]        # + Redshift + SQLAlchemy
+pip install arrowjet[full]        # + Redshift + PostgreSQL + MySQL + SQLAlchemy
 ```
 
 **Supported databases:**
 - **PostgreSQL** / Aurora PostgreSQL / RDS PostgreSQL — via COPY protocol
+- **MySQL** / Aurora MySQL / RDS MySQL / MariaDB — via LOAD DATA LOCAL INFILE
 - **Amazon Redshift** — via COPY/UNLOAD through S3
 
 ---
@@ -83,6 +84,27 @@ df = result.to_pandas()
 
 Works with any PostgreSQL: Aurora, RDS, self-hosted, Docker, Supabase, Neon.
 
+## Quick Start — MySQL
+
+```python
+import arrowjet
+import pymysql
+
+conn = pymysql.connect(host="your-host", database="mydb", user="user",
+                        password="...", local_infile=True)
+
+engine = arrowjet.Engine(provider="mysql")
+
+# Bulk write — LOAD DATA LOCAL INFILE (100x+ faster than INSERT)
+engine.write_dataframe(conn, my_dataframe, "target_table")
+
+# Read — cursor fetch → Arrow
+result = engine.read_bulk(conn, "SELECT * FROM events")
+df = result.to_pandas()
+```
+
+Works with any MySQL: Aurora MySQL, RDS MySQL, self-hosted, MariaDB, PlanetScale, TiDB.
+
 ## Quick Start — Redshift
 
 ```python
@@ -123,6 +145,11 @@ pg_engine = arrowjet.Engine(provider="postgresql")
 pg_engine.write_dataframe(existing_pg_conn, df, "my_table")
 result = pg_engine.read_bulk(existing_pg_conn, "SELECT * FROM my_table")
 
+# MySQL — no staging config needed
+mysql_engine = arrowjet.Engine(provider="mysql")
+mysql_engine.write_dataframe(existing_mysql_conn, df, "my_table")
+result = mysql_engine.read_bulk(existing_mysql_conn, "SELECT * FROM my_table")
+
 # Redshift — needs S3 staging config
 rs_engine = arrowjet.Engine(
     provider="redshift",
@@ -134,7 +161,7 @@ rs_engine.write_dataframe(existing_rs_conn, df, "my_table")
 result = rs_engine.read_bulk(existing_rs_conn, "SELECT * FROM my_table")
 ```
 
-Works with `psycopg2`, `psycopg3`, `redshift_connector`, ADBC, or any DBAPI connection.
+Works with `psycopg2`, `psycopg3`, `pymysql`, `redshift_connector`, ADBC, or any DBAPI connection.
 
 ---
 
@@ -225,6 +252,7 @@ Each database has a fast bulk path that most Python users don't know about:
 | Database | Slow path (what most people use) | Fast path (what arrowjet uses) |
 |---|---|---|
 | PostgreSQL | `executemany()`, `to_sql()` | `COPY FROM STDIN` / `COPY TO STDOUT` |
+| MySQL | `executemany()`, `to_sql()` | `LOAD DATA LOCAL INFILE` |
 | Redshift | `INSERT`, `write_dataframe()` | `COPY` / `UNLOAD` via S3 |
 
 Arrowjet wraps the fast path in a one-line API. There is no slow path.
@@ -235,6 +263,7 @@ Arrowjet wraps the fast path in a one-line API. There is no slow path.
 
 - Python 3.10+
 - **PostgreSQL:** `psycopg2` or `psycopg2-binary` (any PostgreSQL — Aurora, RDS, self-hosted)
+- **MySQL:** `pymysql` with `local_infile=True` (any MySQL — Aurora, RDS, MariaDB, self-hosted)
 - **Redshift:** `pip install arrowjet[redshift]` + S3 bucket + IAM role
 
 See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_setup.md) for Redshift IAM configuration.
@@ -245,7 +274,8 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 
 - [x] Redshift (COPY/UNLOAD via S3)
 - [x] PostgreSQL (COPY protocol)
-- [ ] MySQL / Aurora MySQL (LOAD DATA)
+- [x] MySQL (LOAD DATA LOCAL INFILE)
+- [ ] Cross-database transfer (`arrowjet.transfer()`)
 - [ ] Snowflake (COPY INTO via stages)
 - [ ] Data validation (row counts, schema checks, null detection)
 

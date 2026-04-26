@@ -498,3 +498,75 @@ class TestPostgreSQLExportIntegration:
             "--password", PG_PASS,
         ])
         assert result.exit_code != 0
+
+
+# --- MySQL CLI Integration Tests ---
+
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "")
+MYSQL_PASS = os.environ.get("MYSQL_PASS", "")
+
+
+@pytest.mark.skipif(
+    not os.environ.get("MYSQL_HOST") or not os.environ.get("MYSQL_PASS"),
+    reason="MYSQL_HOST and MYSQL_PASS not set",
+)
+class TestMySQLExportIntegration:
+    """Test CLI export with --provider mysql against real RDS MySQL."""
+
+    def test_mysql_export_to_local_parquet(self, tmp_path):
+        out = str(tmp_path / "mysql_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "mysql",
+            "--query", "SELECT 1 AS id, 'hello' AS name",
+            "--to", out,
+            "--host", MYSQL_HOST,
+            "--password", MYSQL_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Exported" in result.output
+        assert os.path.exists(out)
+
+    def test_mysql_export_to_local_csv(self, tmp_path):
+        out = str(tmp_path / "mysql_out.csv")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "mysql",
+            "--query", "SELECT 1 AS id",
+            "--to", out,
+            "--format", "csv",
+            "--host", MYSQL_HOST,
+            "--password", MYSQL_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Exported" in result.output
+
+    def test_mysql_export_shows_connection_context(self, tmp_path):
+        out = str(tmp_path / "mysql_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "mysql",
+            "--query", "SELECT 1 AS x",
+            "--to", out,
+            "--host", MYSQL_HOST,
+            "--password", MYSQL_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Connected:" in result.output
+
+    def test_mysql_export_uses_cursor_fetch(self, tmp_path):
+        out = str(tmp_path / "mysql_out.parquet")
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "export",
+            "--provider", "mysql",
+            "--query", "SELECT 1 AS x",
+            "--to", out,
+            "--host", MYSQL_HOST,
+            "--password", MYSQL_PASS,
+        ])
+        assert result.exit_code == 0, result.output
+        assert "cursor fetch" in result.output

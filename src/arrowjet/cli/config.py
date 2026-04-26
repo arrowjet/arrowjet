@@ -106,6 +106,13 @@ def resolve_cli_connection_params(profile, host, database, user, password,
         resolved_user = resolve_option(user, "user", "PG_USER", prof) or "postgres"
         resolved_password = resolve_option(password, "password", "PG_PASS", prof) or ""
         resolved_port = int(prof.get("port", os.environ.get("PG_PORT", "5432")))
+    elif resolved_provider == "mysql":
+        # MySQL uses MYSQL_* env vars
+        resolved_host = resolve_option(host, "host", "MYSQL_HOST", prof)
+        resolved_database = resolve_option(database, "database", "MYSQL_DATABASE", prof) or "dev"
+        resolved_user = resolve_option(user, "user", "MYSQL_USER", prof) or "root"
+        resolved_password = resolve_option(password, "password", "MYSQL_PASS", prof) or ""
+        resolved_port = int(prof.get("port", os.environ.get("MYSQL_PORT", "3306")))
     else:
         # Redshift uses REDSHIFT_* env vars
         resolved_host = resolve_option(host, "host", "REDSHIFT_HOST", prof)
@@ -146,6 +153,8 @@ def validate_connection_params(params: dict) -> Optional[str]:
         provider = params.get("provider", "redshift")
         if provider == "postgresql":
             return "PostgreSQL host required. Run 'arrowjet configure' or set PG_HOST."
+        if provider == "mysql":
+            return "MySQL host required. Run 'arrowjet configure' or set MYSQL_HOST."
         return "Redshift host required. Run 'arrowjet configure' or set REDSHIFT_HOST."
 
     auth = params["auth_type"]
@@ -153,6 +162,8 @@ def validate_connection_params(params: dict) -> Optional[str]:
         provider = params.get("provider", "redshift")
         if provider == "postgresql":
             return "Password required. Use --password, set PG_PASS, or configure a profile."
+        if provider == "mysql":
+            return "Password required. Use --password, set MYSQL_PASS, or configure a profile."
         return "Password required for password auth. Use --password, set REDSHIFT_PASS, or switch to auth_type=iam."
     if auth == "secrets_manager" and not params["secret_arn"]:
         return "secret_arn required for Secrets Manager auth."
@@ -244,3 +255,27 @@ def make_pg_engine():
     """Create a PostgreSQL Engine instance."""
     from arrowjet.engine import Engine
     return Engine(provider="postgresql")
+
+
+def make_mysql_connection(params: dict):
+    """
+    Create a pymysql connection for MySQL/Aurora MySQL/RDS MySQL.
+    """
+    import pymysql
+
+    conn = pymysql.connect(
+        host=params["host"],
+        port=params.get("port", 3306),
+        database=params["database"],
+        user=params["user"],
+        password=params["password"],
+        connect_timeout=10,
+        local_infile=True,
+    )
+    return conn
+
+
+def make_mysql_engine():
+    """Create a MySQL Engine instance."""
+    from arrowjet.engine import Engine
+    return Engine(provider="mysql")

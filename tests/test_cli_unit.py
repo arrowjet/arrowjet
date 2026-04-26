@@ -370,3 +370,30 @@ class TestConfigResolvePostgreSQL:
             )
         assert params["provider"] == "postgresql"
         assert params["host"] == "pg.example.com"
+
+
+class TestConfigResolveMysql:
+    """Test that config resolution uses MYSQL_* env vars for mysql provider."""
+
+    def test_mysql_env_vars_used(self, monkeypatch):
+        from arrowjet.cli.config import resolve_cli_connection_params
+        monkeypatch.setenv("MYSQL_HOST", "mysql-host.example.com")
+        monkeypatch.setenv("MYSQL_PASS", "mysqlpass")
+        monkeypatch.setenv("MYSQL_DATABASE", "mydb")
+        monkeypatch.setenv("MYSQL_USER", "mysqluser")
+        monkeypatch.setenv("MYSQL_PORT", "3307")
+        with patch("arrowjet.cli.config.get_profile", return_value={}):
+            params = resolve_cli_connection_params(
+                profile=None, host=None, database=None, user=None, password=None,
+                staging_bucket=None, iam_role=None, region=None,
+                provider="mysql",
+            )
+        assert params["provider"] == "mysql"
+        assert params["host"] == "mysql-host.example.com"
+        assert params["password"] == "mysqlpass"
+        assert params["port"] == 3307
+
+    def test_export_help_shows_mysql(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["export", "--help"])
+        assert "mysql" in result.output

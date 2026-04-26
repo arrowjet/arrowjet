@@ -7,6 +7,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.4.0] — 2026-04-26
+
+### Added
+- **MySQL support** — `Engine(provider="mysql")` for bulk write via `LOAD DATA LOCAL INFILE` and cursor-based Arrow reads. Works with any MySQL: Aurora MySQL, RDS MySQL, MariaDB, self-hosted.
+- **MySQLProvider** — `LOAD DATA LOCAL INFILE` for writes (100x+ faster than INSERT). Cursor fetch with Arrow conversion for reads.
+- **`pymysql` optional dependency** — `pip install arrowjet[mysql]`.
+- **37 new tests** — 22 unit + 15 integration (against real RDS MySQL 8.0.43).
+
+### Changed
+- README updated: three databases supported (PostgreSQL, MySQL, Redshift).
+- Roadmap updated: cross-database transfer is next.
+
+---
+
 ## [0.3.0] — 2026-04-26
 
 ### Added

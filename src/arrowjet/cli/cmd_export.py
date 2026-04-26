@@ -30,7 +30,7 @@ from .config import (
 @click.option("--to", "destination", required=True, help="Destination: s3://bucket/path or local file path")
 @click.option("--format", "fmt", default="parquet", type=click.Choice(["parquet", "csv"]), help="Output format")
 @click.option("--profile", default=None, help="Config profile name")
-@click.option("--provider", default=None, type=click.Choice(["redshift", "postgresql"]), help="Database provider")
+@click.option("--provider", default=None, type=click.Choice(["redshift", "postgresql", "mysql"]), help="Database provider")
 @click.option("--host", default=None, help="Database host (overrides profile)")
 @click.option("--database", default=None, help="Database (overrides profile)")
 @click.option("--user", default=None, help="User (overrides profile)")
@@ -78,6 +78,29 @@ def export(query, destination, fmt, profile, provider, host, database, user, pas
         engine = make_pg_engine()
 
         click.echo("Exporting via COPY TO STDOUT (PostgreSQL)...")
+        result = engine.read_bulk(conn, query)
+        table = result.table
+        rows = result.rows
+        conn.close()
+
+        if fmt == "parquet":
+            import pyarrow.parquet as pq
+            pq.write_table(table, destination)
+        elif fmt == "csv":
+            table.to_pandas().to_csv(destination, index=False)
+
+        elapsed = time.perf_counter() - start
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")
+        return
+
+    # --- MySQL path: cursor fetch → Arrow (no S3 staging needed) ---
+    if params.get("provider") == "mysql":
+        from .config import make_mysql_connection, make_mysql_engine
+
+        conn = make_mysql_connection(params)
+        engine = make_mysql_engine()
+
+        click.echo("Exporting via cursor fetch (MySQL)...")
         result = engine.read_bulk(conn, query)
         table = result.table
         rows = result.rows
