@@ -7,6 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] — 2026-04-26
+
+### Added
+- **PostgreSQL support** — `arrowjet.PostgreSQLEngine()` for bulk read/write via native COPY protocol. Works with any PostgreSQL: Aurora, RDS, self-hosted, Docker.
+- **PostgreSQLProvider** — `COPY FROM STDIN` for writes (850x faster than executemany), `COPY TO STDOUT` for reads (1.5x faster than fetchall). No S3 staging required.
+- **CLI `--provider postgresql`** — export from PostgreSQL via COPY protocol. `arrowjet export --provider postgresql --query "..." --to ./out.parquet`
+- **PostgreSQL benchmarks** — 1M rows on RDS PostgreSQL 16.6 (EC2 same region): write 1.13s (885K rows/s), read 0.65s (1.5M rows/s).
+- **46 new tests** — 24 unit + 17 integration (against real RDS PostgreSQL) + 5 CLI integration.
+
+### Changed
+- README updated: "The fastest way to move data in and out of cloud databases" (was Redshift-only).
+- CLI description updated to "Fast bulk data movement for cloud databases."
+- `psycopg2` added as optional dependency for PostgreSQL support.
+
+---
+
 ## [0.2.0] — 2026-04-24
 
 ### Added
