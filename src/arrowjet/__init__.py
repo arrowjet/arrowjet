@@ -28,5 +28,11 @@ __version__ = "0.4.0"
 
 from .connection import connect, ArrowjetConnection, ArrowjetError
 from .engine import Engine, PostgreSQLEngine
+from .transfer import transfer, TransferResult
 
-__all__ = ["connect", "ArrowjetConnection", "ArrowjetError", "Engine", "PostgreSQLEngine", "__version__"]
+__all__ = [
+    "connect", "ArrowjetConnection", "ArrowjetError",
+    "Engine", "PostgreSQLEngine",
+    "transfer", "TransferResult",
+    "__version__",
+]
