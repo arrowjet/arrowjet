@@ -1,5 +1,5 @@
 """
-UNLOAD command builder — generates Redshift UNLOAD SQL with proper options.
+UNLOAD command builder  - generates Redshift UNLOAD SQL with proper options.
 
 Handles IAM role, format, compression, parallelism, encryption,
 and Redshift UNLOAD quirks (e.g., LIMIT not supported directly).
@@ -44,7 +44,7 @@ class UnloadCommandBuilder:
         Returns:
             Complete UNLOAD SQL string
         """
-        # Redshift UNLOAD doesn't support LIMIT directly — wrap in subquery
+        # Redshift UNLOAD doesn't support LIMIT directly  - wrap in subquery
         query = _wrap_if_limit(query)
 
         parts = [

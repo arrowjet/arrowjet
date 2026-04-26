@@ -1,8 +1,8 @@
 """
-Integration tests for the BYOC Engine — requires real Redshift + S3.
+Integration tests for the BYOC Engine  - requires real Redshift + S3.
 
 Tests that Engine works with a user-provided redshift_connector connection,
-validating the full UNLOAD → S3 → Parquet → Arrow pipeline.
+validating the full UNLOAD -> S3 -> Parquet -> Arrow pipeline.
 
 Requires env vars: REDSHIFT_HOST, REDSHIFT_PASS, STAGING_BUCKET, STAGING_IAM_ROLE
 """
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture
 def user_conn():
-    """A plain redshift_connector connection — what a user would bring."""
+    """A plain redshift_connector connection  - what a user would bring."""
     conn = redshift_connector.connect(
         host=os.environ["REDSHIFT_HOST"],
         port=int(os.environ.get("REDSHIFT_PORT", "5439")),
@@ -40,7 +40,7 @@ def user_conn():
 
 @pytest.fixture
 def engine():
-    """A Arrowjet Engine with staging config — no connection details."""
+    """A Arrowjet Engine with staging config  - no connection details."""
     return Engine(
         staging_bucket=os.environ["STAGING_BUCKET"],
         staging_iam_role=os.environ["STAGING_IAM_ROLE"],
@@ -308,7 +308,7 @@ class TestPostgreSQLEngineWriteBulk:
         assert result.rows == 50
 
     def test_roundtrip(self, pg_conn, pg_engine, test_table):
-        """Write then read back — verify data integrity."""
+        """Write then read back  - verify data integrity."""
         table = pa.table({"id": pa.array([10, 20, 30], type=pa.int64()),
                           "val": pa.array([1.1, 2.2, 3.3], type=pa.float64())})
         pg_engine.write_bulk(pg_conn, table, test_table)

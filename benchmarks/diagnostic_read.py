@@ -108,7 +108,7 @@ def diagnostic_read(conn, table_name, bucket, prefix, iam_role, region):
     results["file_count"] = len(files)
     results["total_bytes"] = total_bytes
     results["total_mb"] = round(total_bytes / 1024 / 1024, 1)
-    print(f"    {results['list_s']:.2f}s — {len(files)} files, {results['total_mb']} MB total")
+    print(f"    {results['list_s']:.2f}s  - {len(files)} files, {results['total_mb']} MB total")
 
     for f in files:
         size_mb = f["Size"] / 1024 / 1024
@@ -125,7 +125,7 @@ def diagnostic_read(conn, table_name, bucket, prefix, iam_role, region):
     current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
     results["read_pyarrow_s3fs_peak_mb"] = round(peak / 1024 / 1024, 1)
-    print(f"    {results['read_pyarrow_s3fs_s']:.2f}s — {table_a.num_rows:,} rows, peak mem: {results['read_pyarrow_s3fs_peak_mb']} MB")
+    print(f"    {results['read_pyarrow_s3fs_s']:.2f}s  - {table_a.num_rows:,} rows, peak mem: {results['read_pyarrow_s3fs_peak_mb']} MB")
 
     # Phase 3b: Read via boto3 download (for comparison)
     print("  Phase 3b: Read via boto3 sequential download...")
@@ -137,7 +137,7 @@ def diagnostic_read(conn, table_name, bucket, prefix, iam_role, region):
         tables.append(pq.read_table(buf))
     table_b = pa.concat_tables(tables) if tables else pa.table({})
     results["read_boto3_seq_s"] = time.perf_counter() - start
-    print(f"    {results['read_boto3_seq_s']:.2f}s — {table_b.num_rows:,} rows")
+    print(f"    {results['read_boto3_seq_s']:.2f}s  - {table_b.num_rows:,} rows")
 
     # Phase 4: Cleanup
     print("  Phase 4: Cleanup...")

@@ -1,5 +1,5 @@
 """
-COPY command builder — generates Redshift COPY SQL with proper options.
+COPY command builder  - generates Redshift COPY SQL with proper options.
 
 Handles IAM role, format, encryption, compression, and error handling options.
 """

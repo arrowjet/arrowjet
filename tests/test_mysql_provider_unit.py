@@ -1,5 +1,5 @@
 """
-Unit tests for MySQLProvider — LOAD DATA LOCAL INFILE bulk operations.
+Unit tests for MySQLProvider  - LOAD DATA LOCAL INFILE bulk operations.
 
 Tests the provider logic without requiring a real MySQL connection.
 Uses mock connections to verify SQL generation and data flow.

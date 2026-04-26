@@ -85,7 +85,7 @@ def run_baseline_batched(conn, cfg):
         total_elapsed = time.perf_counter() - start
         rate = total_written / total_elapsed
 
-        print(f"  Batch {total_written:>7,}/{BASELINE_ROWS:,} — "
+        print(f"  Batch {total_written:>7,}/{BASELINE_ROWS:,}  - "
               f"batch: {batch_elapsed:.1f}s, "
               f"total: {total_elapsed:.1f}s, "
               f"rate: {rate:,.0f} rows/s")

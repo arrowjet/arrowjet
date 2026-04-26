@@ -28,49 +28,49 @@
 
 ---
 
-## EC2 Results (same-region — authoritative)
+## EC2 Results (same-region  - authoritative)
 
 ### 1M rows (benchmark_test_1m, 15 columns)
 
 | Driver | Method | Median | vs RS connector |
 |---|---|---|---|
 | ADBC | fetch_arrow_table (native) | 15.35s | 1.15x faster |
-| ADBC | fetch_arrow → to_pandas | 17.22s | 1.02x faster |
+| ADBC | fetch_arrow -> to_pandas | 17.22s | 1.02x faster |
 | redshift_connector | fetch_dataframe | 17.59s | baseline |
-| pyodbc | fetchall → DataFrame | 18.21s | 0.97x (slower) |
+| pyodbc | fetchall -> DataFrame | 18.21s | 0.97x (slower) |
 
 ### 10M rows (benchmark_test_10m, 15 columns)
 
 | Driver | Method | Median | vs RS connector |
 |---|---|---|---|
 | ADBC | fetch_arrow_table (native) | 90.26s | 1.64x faster |
-| ADBC | fetch_arrow → to_pandas | 86.27s | 1.72x faster |
+| ADBC | fetch_arrow -> to_pandas | 86.27s | 1.72x faster |
 | redshift_connector | fetch_dataframe | 148.18s | baseline |
-| pyodbc | fetchall → DataFrame | 163.49s | 0.91x (slower) |
+| pyodbc | fetchall -> DataFrame | 163.49s | 0.91x (slower) |
 
 ### Scaling behavior
 
 | Driver | 1M | 10M | Scale factor |
 |---|---|---|---|
 | ADBC Arrow native | 15.35s | 90.26s | 5.9x |
-| ADBC → pandas | 17.22s | 86.27s | 5.0x |
+| ADBC -> pandas | 17.22s | 86.27s | 5.0x |
 | redshift_connector | 17.59s | 148.18s | 8.4x |
 | pyodbc | 18.21s | 163.49s | 9.0x |
 
 ---
 
-## Local Results (macOS, VPN — for reference only)
+## Local Results (macOS, VPN  - for reference only)
 
 ### 1M rows
 
 | Driver | Method | Median |
 |---|---|---|
 | ADBC | fetch_arrow_table | 34.47s |
-| ADBC | fetch_arrow → to_pandas | 35.08s |
+| ADBC | fetch_arrow -> to_pandas | 35.08s |
 | redshift_connector | fetch_dataframe | 37.46s |
-| pyodbc | fetchall → DataFrame | 36.52s |
+| pyodbc | fetchall -> DataFrame | 36.52s |
 
-Over VPN, all drivers are within 7% — network latency dominates.
+Over VPN, all drivers are within 7%  - network latency dominates.
 
 ---
 
@@ -82,7 +82,7 @@ Over VPN, all drivers are within 7% — network latency dominates.
 
 3. **ADBC scales better:** Going from 1M to 10M, ADBC time increases 5-6x while row-based drivers increase 8-9x. The row-to-column conversion cost grows linearly with row count.
 
-4. **Over VPN:** All drivers are within 7% — network latency dominates client-side processing. The ADBC advantage only shows on fast networks (EC2 same-region).
+4. **Over VPN:** All drivers are within 7%  - network latency dominates client-side processing. The ADBC advantage only shows on fast networks (EC2 same-region).
 
 5. **pyodbc is consistently slowest** at scale due to Python-level row iteration + DataFrame construction.
 
@@ -94,14 +94,14 @@ Over VPN, all drivers are within 7% — network latency dominates.
 
 ADBC provides a meaningful advantage (1.6-1.7x) over redshift_connector at 10M+ rows on fast networks, specifically for columnar output (Arrow, DataFrame). For small queries or high-latency networks, the difference is negligible.
 
-The real value of ADBC in Arrowjet is not safe-mode speed — it's the Arrow-native data path that eliminates serialization overhead when feeding data into analytics tools (pandas, polars, DuckDB). The dramatic performance gains come from the bulk engine (COPY/UNLOAD), not from the driver layer.
+The real value of ADBC in Arrowjet is not safe-mode speed  - it's the Arrow-native data path that eliminates serialization overhead when feeding data into analytics tools (pandas, polars, DuckDB). The dramatic performance gains come from the bulk engine (COPY/UNLOAD), not from the driver layer.
 
 
 ---
 
 ## Comparison with Bulk Engine (from M0)
 
-For context — safe mode vs bulk mode on the same data:
+For context  - safe mode vs bulk mode on the same data:
 
 ### Reads (10M rows)
 

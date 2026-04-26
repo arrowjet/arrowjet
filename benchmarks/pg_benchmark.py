@@ -2,7 +2,7 @@
 PostgreSQL bulk benchmark: COPY protocol vs INSERT.
 
 Compares:
-  1. Row-by-row INSERT (executemany) — the slow path everyone uses
+  1. Row-by-row INSERT (executemany)  - the slow path everyone uses
   2. to_sql with chunksize (what pandas/awswrangler do)
   3. Arrowjet PostgreSQLEngine (COPY FROM STDIN / COPY TO STDOUT)
 
@@ -71,7 +71,7 @@ results = {}
 # Lane 1: executemany (batch 1000)
 # ============================================================
 BATCH = 1000
-# Cap at 10K rows for executemany (extrapolate) — it's too slow for 100K
+# Cap at 10K rows for executemany (extrapolate)  - it's too slow for 100K
 EXEC_ROWS = min(ROWS, 10000)
 print(f"[1/4] executemany (batch={BATCH}, {EXEC_ROWS:,} rows, extrapolate to {ROWS:,})...", flush=True)
 

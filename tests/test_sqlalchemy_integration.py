@@ -1,5 +1,5 @@
 """
-Integration tests for SQLAlchemy dialect — requires real Redshift.
+Integration tests for SQLAlchemy dialect  - requires real Redshift.
 Uses redshift_connector as DBAPI.
 """
 

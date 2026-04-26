@@ -2,9 +2,9 @@
 Three-way write benchmark: write_dataframe (INSERT) vs manual COPY vs arrowjet write_bulk.
 Run on EC2 (same region as Redshift) for accurate numbers.
 
-Lane 1: redshift_connector write_dataframe() — INSERT under the hood (naive baseline)
-Lane 2: Manual COPY — upload Parquet to S3, run COPY (50 lines of boilerplate)
-Lane 3: Arrowjet write_bulk() — same COPY path, automatic staging
+Lane 1: redshift_connector write_dataframe()  - INSERT under the hood (naive baseline)
+Lane 2: Manual COPY  - upload Parquet to S3, run COPY (50 lines of boilerplate)
+Lane 3: Arrowjet write_bulk()  - same COPY path, automatic staging
 
 Usage:
     export REDSHIFT_HOST=... REDSHIFT_PASS=... STAGING_BUCKET=... STAGING_IAM_ROLE=...

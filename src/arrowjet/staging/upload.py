@@ -1,5 +1,5 @@
 """
-S3 upload engine — handles staging file uploads with retry and encryption.
+S3 upload engine  - handles staging file uploads with retry and encryption.
 
 Uses temp files + boto3 upload_file (transfer manager) for best performance,
 as validated in M0 benchmarks.

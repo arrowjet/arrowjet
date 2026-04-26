@@ -1,5 +1,5 @@
 """
-Unit tests for the CLI commands — no AWS or Redshift calls required.
+Unit tests for the CLI commands  - no AWS or Redshift calls required.
 Tests option resolution, config loading, connection context, and error handling.
 """
 
@@ -29,7 +29,7 @@ class TestResolveOption:
         assert resolve_option(None, "key", "NONEXISTENT_VAR_XYZ", {}) is None
 
     def test_empty_string_cli_value_not_used(self):
-        # Empty string is falsy — falls through to env/profile
+        # Empty string is falsy  - falls through to env/profile
         result = resolve_option("", "key", "NONEXISTENT_VAR_XYZ", {"key": "profile_val"})
         assert result == "profile_val"
 
@@ -347,6 +347,8 @@ class TestConfigResolvePostgreSQL:
     def test_profile_provider_field(self, monkeypatch):
         """Provider can come from the profile config."""
         from arrowjet.cli.config import resolve_cli_connection_params
+        monkeypatch.delenv("PG_HOST", raising=False)
+        monkeypatch.delenv("PG_PASS", raising=False)
         profile = {"provider": "postgresql", "host": "aurora.example.com", "password": "pass"}
         with patch("arrowjet.cli.config.get_profile", return_value=profile):
             params = resolve_cli_connection_params(

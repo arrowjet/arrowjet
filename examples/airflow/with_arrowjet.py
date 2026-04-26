@@ -1,5 +1,5 @@
 """
-Testable version of the Arrowjet Airflow example — two tasks in a DAG.
+Testable version of the Arrowjet Airflow example  - two tasks in a DAG.
 
 Task 1: Extract from Redshift (bulk + safe mode)
 Task 2: Verify the exported file
@@ -56,5 +56,5 @@ with DAG("test_arrowjet_export", start_date=datetime(2025, 1, 1), schedule=None)
         assert table.num_rows == 1000, f"Expected 1000 rows, got {table.num_rows}"
         print("All good.")
 
-    # Task 1 → Task 2 (extract passes file path to verify)
+    # Task 1 -> Task 2 (extract passes file path to verify)
     verify(extract())

@@ -147,7 +147,7 @@ class TestRedshiftProvider:
 
 
 class TestLimitWrapping:
-    """UNLOAD doesn't support LIMIT directly — provider should auto-wrap."""
+    """UNLOAD doesn't support LIMIT directly  - provider should auto-wrap."""
 
     def test_limit_gets_wrapped(self):
         assert _wrap_if_limit("SELECT * FROM t LIMIT 100") == \

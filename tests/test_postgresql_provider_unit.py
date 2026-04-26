@@ -1,5 +1,5 @@
 """
-Unit tests for PostgreSQLProvider — COPY protocol bulk operations.
+Unit tests for PostgreSQLProvider  - COPY protocol bulk operations.
 
 Tests the provider logic without requiring a real PostgreSQL connection.
 Uses mock connections to verify COPY SQL generation and data flow.

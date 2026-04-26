@@ -1,5 +1,5 @@
 """
-arrowjet validate — validate a Redshift table (row count, schema, sample).
+arrowjet validate  - validate a Redshift table (row count, schema, sample).
 
 Examples:
     arrowjet validate --table sales --row-count

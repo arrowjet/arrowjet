@@ -1,5 +1,5 @@
 """
-ResolvedCredentials — the shared credential container.
+ResolvedCredentials  - the shared credential container.
 
 Database-specific auth modules (redshift.py, snowflake.py, etc.)
 resolve credentials into this object. It can render itself as
@@ -20,8 +20,8 @@ class ResolvedCredentials:
     Database credentials resolved from any auth method.
 
     Provides two output formats:
-      - as_kwargs() → dict for keyword-based drivers (redshift_connector, psycopg2)
-      - as_uri()    → PostgreSQL URI for URI-based drivers (ADBC, SQLAlchemy)
+      - as_kwargs() -> dict for keyword-based drivers (redshift_connector, psycopg2)
+      - as_uri()    -> PostgreSQL URI for URI-based drivers (ADBC, SQLAlchemy)
 
     Attributes:
         host: Database hostname

@@ -1,1 +1,1 @@
-"""Arrowjet CLI — simple, flat command structure."""
+"""Arrowjet CLI  - simple, flat command structure."""

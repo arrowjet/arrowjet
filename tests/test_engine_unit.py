@@ -1,5 +1,5 @@
 """
-Unit tests for the BYOC Engine — no AWS calls required.
+Unit tests for the BYOC Engine  - no AWS calls required.
 Tests both Redshift and PostgreSQL providers via unified Engine(provider=...).
 """
 

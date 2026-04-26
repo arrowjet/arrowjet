@@ -1,5 +1,5 @@
 """
-Redshift authentication — IAM, Secrets Manager, and password.
+Redshift authentication  - IAM, Secrets Manager, and password.
 
 Resolves Redshift credentials into a ResolvedCredentials object
 that works with any DBAPI driver (redshift_connector, ADBC, psycopg2).
@@ -157,7 +157,7 @@ def _resolve_password(
     user: Optional[str],
     password: Optional[str],
 ) -> ResolvedCredentials:
-    """Passthrough — just validate and wrap."""
+    """Passthrough  - just validate and wrap."""
     if not user:
         raise ValueError("user is required for password authentication")
     return ResolvedCredentials(
@@ -364,7 +364,7 @@ def extract_cluster_identifier(host: str) -> str:
     """
     Extract the cluster identifier from a provisioned Redshift endpoint.
 
-    ``my-cluster.xxxx.us-east-1.redshift.amazonaws.com`` → ``my-cluster``
+    ``my-cluster.xxxx.us-east-1.redshift.amazonaws.com`` -> ``my-cluster``
     """
     return host.split(".")[0]
 
@@ -374,7 +374,7 @@ def extract_workgroup_name(host: str) -> str:
     Extract the workgroup name from a Redshift Serverless endpoint.
 
     ``my-workgroup.123456789.us-east-1.redshift-serverless.amazonaws.com``
-    → ``my-workgroup``
+    -> ``my-workgroup``
     """
     return host.split(".")[0]
 

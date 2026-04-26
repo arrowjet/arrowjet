@@ -1,5 +1,5 @@
 """
-Arrowjet — High-Performance Bulk Data Movement for Redshift.
+Arrowjet  - High-Performance Bulk Data Movement for Redshift.
 
 Usage:
     import arrowjet

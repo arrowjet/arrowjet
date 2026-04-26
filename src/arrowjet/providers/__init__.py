@@ -1,5 +1,5 @@
 """
-Arrowjet provider system — database-specific bulk operation implementations.
+Arrowjet provider system  - database-specific bulk operation implementations.
 
 Each provider implements bulk operations for a specific database.
 The core engine is provider-agnostic.

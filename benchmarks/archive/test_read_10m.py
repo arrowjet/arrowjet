@@ -1,4 +1,4 @@
-"""Quick test: 10M read benchmark — bulk only (skip baseline, we know it's slow)."""
+"""Quick test: 10M read benchmark  - bulk only (skip baseline, we know it's slow)."""
 
 import time
 import redshift_connector

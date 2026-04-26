@@ -2,7 +2,7 @@
 
 ## How Arrowjet Fits the dbt Ecosystem
 
-dbt is a SQL transformation tool — it excels at turning raw data into clean,
+dbt is a SQL transformation tool  - it excels at turning raw data into clean,
 tested, documented tables inside your warehouse. What dbt doesn't do is move
 large volumes of data in or out efficiently.
 
@@ -105,8 +105,8 @@ PYTHONPATH=src bash examples/dbt/run_with_arrowjet.sh
 === Step 1: dbt run ===
 1 of 1 OK created sql table model public.sales_summary [SUCCESS in 6.05s]
 
-=== Step 2: arrowjet export → s3://your-bucket/dbt-exports/sales_summary/ ===
-Exported 365 rows in 4.2s → /tmp/dbt_sales_summary.parquet
+=== Step 2: arrowjet export -> s3://your-bucket/dbt-exports/sales_summary/ ===
+Exported 365 rows in 4.2s -> /tmp/dbt_sales_summary.parquet
 
 Done.
 ```
@@ -134,7 +134,7 @@ aws redshift-serverless delete-namespace --namespace-name your-namespace --regio
 **dbt Python models are not supported on Redshift** (only Snowflake, BigQuery, Databricks).
 This means arrowjet cannot run inside a dbt Python model on Redshift today.
 
-The workaround is the shell script pattern shown here — arrowjet runs outside dbt,
+The workaround is the shell script pattern shown here  - arrowjet runs outside dbt,
 wrapping `dbt run`. This works for all Redshift deployments (provisioned and serverless).
 
 For the roadmap on contributing Python model support to dbt-redshift, see
@@ -145,7 +145,7 @@ For the roadmap on contributing Python model support to dbt-redshift, see
 dbt `on-run-start` and `on-run-end` hooks only execute SQL statements or macros
 that produce SQL. They cannot call Python or shell commands directly.
 
-The `export_with_arrowjet` macro in this example logs the export intent — the actual
+The `export_with_arrowjet` macro in this example logs the export intent  - the actual
 arrowjet export runs in `run_with_arrowjet.sh` after `dbt run` completes.
 
 If you need to trigger arrowjet from within dbt, use a CI/CD pipeline or an

@@ -74,7 +74,7 @@ def run_manual_copy(conn, table, cfg, label):
 
     print(f"\n--- {label}: MANUAL COPY (phase breakdown) ---")
 
-    # Phase 1: Arrow → Parquet (BytesIO)
+    # Phase 1: Arrow -> Parquet (BytesIO)
     t = time.perf_counter()
     buf = io.BytesIO()
     pq.write_table(table, buf, compression="snappy")
@@ -111,7 +111,7 @@ def run_manual_copy(conn, table, cfg, label):
 
 
 def run_our_write_bulk(conn, table, cfg, label):
-    """Our write_bulk with phase breakdown — same steps, instrumented."""
+    """Our write_bulk with phase breakdown  - same steps, instrumented."""
     stg = cfg["staging"]
     s3 = boto3.client("s3", region_name=stg["region"])
     op_id = uuid.uuid4().hex[:12]
@@ -121,7 +121,7 @@ def run_our_write_bulk(conn, table, cfg, label):
 
     print(f"\n--- {label}: OUR WRITE_BULK (phase breakdown) ---")
 
-    # Phase 1: Arrow → Parquet (BytesIO) — same as manual
+    # Phase 1: Arrow -> Parquet (BytesIO)  - same as manual
     t = time.perf_counter()
     buf = io.BytesIO()
     pq.write_table(table, buf, compression="snappy")
@@ -130,13 +130,13 @@ def run_our_write_bulk(conn, table, cfg, label):
     p1 = time.perf_counter() - t
     print(f"  1. Parquet write (BytesIO):  {p1:.3f}s  ({parquet_bytes/1024/1024:.1f} MB)")
 
-    # Phase 2: S3 upload (upload_fileobj) — same as manual
+    # Phase 2: S3 upload (upload_fileobj)  - same as manual
     t = time.perf_counter()
     s3.upload_fileobj(buf, stg["bucket"], parquet_key)
     p2 = time.perf_counter() - t
     print(f"  2. S3 upload (upload_fileobj): {p2:.3f}s")
 
-    # Phase 3: COPY — same as manual
+    # Phase 3: COPY  - same as manual
     create_target_table(conn, f"diag_ours_{label}", cfg)
     t = time.perf_counter()
     cursor = conn.cursor()
@@ -168,7 +168,7 @@ def run_tempfile_variant(conn, table, cfg, label):
 
     print(f"\n--- {label}: TEMP FILE VARIANT (phase breakdown) ---")
 
-    # Phase 1: Arrow → Parquet (temp file)
+    # Phase 1: Arrow -> Parquet (temp file)
     t = time.perf_counter()
     tmp = tempfile.NamedTemporaryFile(suffix=".parquet", delete=False)
     pq.write_table(table, tmp.name, compression="snappy")
@@ -176,7 +176,7 @@ def run_tempfile_variant(conn, table, cfg, label):
     p1 = time.perf_counter() - t
     print(f"  1. Parquet write (temp file): {p1:.3f}s  ({parquet_bytes/1024/1024:.1f} MB)")
 
-    # Phase 2: S3 upload (upload_file — uses transfer manager)
+    # Phase 2: S3 upload (upload_file  - uses transfer manager)
     t = time.perf_counter()
     s3.upload_file(tmp.name, stg["bucket"], parquet_key)
     p2 = time.perf_counter() - t
@@ -216,7 +216,7 @@ def main():
         password=rs["password"],
     )
 
-    # Generate data once — shared across all runs
+    # Generate data once  - shared across all runs
     print(f"Generating {ROWS:,} rows (shared across all tests)...")
     table = generate_arrow_table(ROWS, cfg)
     print(f"  Arrow table: {table.nbytes / 1024 / 1024:.1f} MB, {table.num_columns} columns")
@@ -238,7 +238,7 @@ def main():
 
     # Summary
     print(f"\n{'='*60}")
-    print("SUMMARY (Run 2 — measured)")
+    print("SUMMARY (Run 2  - measured)")
     print(f"{'='*60}")
     print(f"{'Phase':<25} {'Manual':>10} {'Ours(BytesIO)':>15} {'Ours(TmpFile)':>15}")
     print("-" * 67)

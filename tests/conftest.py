@@ -1,5 +1,5 @@
 """
-Shared test configuration — reads credentials from environment variables.
+Shared test configuration  - reads credentials from environment variables.
 
 Local: source .env or export vars manually
 GitHub Actions: set as repository secrets

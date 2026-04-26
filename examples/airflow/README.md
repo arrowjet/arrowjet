@@ -7,13 +7,13 @@ Exporting data from Redshift in Airflow typically requires 30-50 lines of manual
 ## Examples
 
 ### Without Arrowjet (manual UNLOAD): ~50 lines
-See [without_arrowjet.py](without_arrowjet.py) — manual UNLOAD, S3 management, cleanup, error handling.
+See [without_arrowjet.py](without_arrowjet.py)  - manual UNLOAD, S3 management, cleanup, error handling.
 
 ### With Arrowjet (TaskFlow): ~8 lines
-See [with_arrowjet.py](with_arrowjet.py) — same result, automatic everything. Two-task DAG: extract → verify.
+See [with_arrowjet.py](with_arrowjet.py)  - same result, automatic everything. Two-task DAG: extract -> verify.
 
 ### With Arrowjet (CLI via BashOperator): ~3 lines
-See [with_arrowjet_cli.py](with_arrowjet_cli.py) — zero Python, just a CLI command.
+See [with_arrowjet_cli.py](with_arrowjet_cli.py)  - zero Python, just a CLI command.
 
 ## Performance
 
@@ -81,5 +81,5 @@ All good.
 
 ## Known Quirks
 
-- Redshift UNLOAD doesn't support `LIMIT` directly — Arrowjet handles this automatically.
+- Redshift UNLOAD doesn't support `LIMIT` directly  - Arrowjet handles this automatically.
 - Use Airflow 3.2+ (`dags test` has a bug in 3.0.x).

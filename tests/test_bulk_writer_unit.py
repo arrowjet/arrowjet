@@ -1,5 +1,5 @@
 """
-Unit tests for the bulk write engine — no AWS calls required.
+Unit tests for the bulk write engine  - no AWS calls required.
 Tests COPY command generation and WriteResult.
 """
 

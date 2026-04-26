@@ -1,5 +1,5 @@
 """
-Unit tests for arrowjet.auth — credential resolution.
+Unit tests for arrowjet.auth  - credential resolution.
 
 Tests the ResolvedCredentials container and Redshift-specific
 auth flows (IAM, Secrets Manager, password) using mocked AWS calls.
@@ -272,7 +272,7 @@ class TestInputValidation:
 
 
 # ===================================================================
-# IAM auth — provisioned
+# IAM auth  - provisioned
 # ===================================================================
 
 
@@ -447,7 +447,7 @@ class TestIamProvisioned:
 
 
 # ===================================================================
-# IAM auth — serverless
+# IAM auth  - serverless
 # ===================================================================
 
 

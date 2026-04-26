@@ -1,8 +1,8 @@
 """
-Airflow DAG: Export Redshift data — NAIVE approach (no UNLOAD, no arrowjet).
+Airflow DAG: Export Redshift data  - NAIVE approach (no UNLOAD, no arrowjet).
 
 This is what most people start with: cursor.execute() + fetchall().
-Simple, but slow for large datasets — every row travels over the wire.
+Simple, but slow for large datasets  - every row travels over the wire.
 
 Compare timing against without_arrowjet.py (manual UNLOAD) and
 with_arrowjet.py (arrowjet) to see the difference.

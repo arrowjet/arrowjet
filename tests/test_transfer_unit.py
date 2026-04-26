@@ -1,5 +1,5 @@
 """
-Unit tests for cross-database transfer — no real connections needed.
+Unit tests for cross-database transfer  - no real connections needed.
 """
 
 from unittest.mock import MagicMock

@@ -1,11 +1,11 @@
 """
-Cleanup manager — handles S3 staged file cleanup based on policy.
+Cleanup manager  - handles S3 staged file cleanup based on policy.
 
 Policies:
-  ALWAYS      — delete after every operation
-  ON_SUCCESS  — delete on success, preserve on failure for debugging
-  NEVER       — user manages lifecycle
-  TTL_MANAGED — rely on S3 lifecycle rules
+  ALWAYS       - delete after every operation
+  ON_SUCCESS   - delete on success, preserve on failure for debugging
+  NEVER        - user manages lifecycle
+  TTL_MANAGED  - rely on S3 lifecycle rules
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ class CleanupManager:
         Clean up staged files for an operation based on policy.
 
         Returns True if cleanup was performed, False if skipped.
-        Logs warnings on failure but does not raise — the operation
+        Logs warnings on failure but does not raise  - the operation
         result is already returned to the user.
         """
         policy = self._config.cleanup_policy
@@ -57,7 +57,7 @@ class CleanupManager:
 
         if policy == CleanupPolicy.ON_SUCCESS and operation.state == OperationState.FAILED:
             logger.info(
-                "Cleanup skipped (policy=on_success, state=failed): %s — "
+                "Cleanup skipped (policy=on_success, state=failed): %s  - "
                 "staged files preserved for debugging",
                 operation.path.key_prefix,
             )
@@ -104,7 +104,7 @@ class CleanupManager:
             return True
         except Exception as e:
             logger.warning(
-                "Cleanup failed for %s: %s — staged files may remain",
+                "Cleanup failed for %s: %s  - staged files may remain",
                 operation.path.key_prefix, e,
             )
             try:

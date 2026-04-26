@@ -1,5 +1,5 @@
 """
-Execution eligibility checker — determines when UNLOAD routing is safe.
+Execution eligibility checker  - determines when UNLOAD routing is safe.
 
 UNLOAD has different semantics than direct fetch:
   - Runs outside the current transaction
@@ -35,12 +35,12 @@ _DML_DDL_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-# SELECT INTO creates a table — not a pure read
+# SELECT INTO creates a table  - not a pure read
 _SELECT_INTO_PATTERN = re.compile(
     r'\bSELECT\b.+?\bINTO\s+\w+', re.IGNORECASE | re.DOTALL
 )
 
-# FOR UPDATE/SHARE — row-locking clauses, not supported by Redshift UNLOAD
+# FOR UPDATE/SHARE  - row-locking clauses, not supported by Redshift UNLOAD
 _FOR_UPDATE_PATTERN = re.compile(
     r'\bFOR\s+(UPDATE|NO\s+KEY\s+UPDATE|SHARE|KEY\s+SHARE)\b', re.IGNORECASE
 )

@@ -1,5 +1,5 @@
 """
-Bulk Write Engine — Arrow → Parquet → S3 → COPY.
+Bulk Write Engine  - Arrow -> Parquet -> S3 -> COPY.
 
 Production implementation built on M1 staging subsystem.
 Replaces the M0 prototype with proper lifecycle management,
@@ -56,7 +56,7 @@ class BulkWriter:
         """
         Write an Arrow table to a Redshift table via COPY.
 
-        Pipeline: Arrow → Parquet (temp file) → S3 → COPY → cleanup
+        Pipeline: Arrow -> Parquet (temp file) -> S3 -> COPY -> cleanup
 
         Args:
             conn: redshift_connector Connection
@@ -160,7 +160,7 @@ class BulkWriter:
         """
         Write a pandas DataFrame to Redshift via COPY.
 
-        Convenience method — converts DataFrame to Arrow, then calls write().
+        Convenience method  - converts DataFrame to Arrow, then calls write().
         Compatible with redshift_connector's write_dataframe() pattern.
         """
         table = pa.Table.from_pandas(df, preserve_index=False)

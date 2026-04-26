@@ -1,9 +1,9 @@
 """
-PostgreSQLProvider — bulk operations for PostgreSQL, Aurora PostgreSQL, and RDS PostgreSQL.
+PostgreSQLProvider  - bulk operations for PostgreSQL, Aurora PostgreSQL, and RDS PostgreSQL.
 
 Uses PostgreSQL's native COPY protocol for high-speed bulk data movement:
-  - Write: Arrow → binary COPY stream → COPY FROM STDIN WITH (FORMAT binary)
-  - Read:  COPY (query) TO STDOUT WITH (FORMAT binary) → binary stream → Arrow
+  - Write: Arrow -> binary COPY stream -> COPY FROM STDIN WITH (FORMAT binary)
+  - Read:  COPY (query) TO STDOUT WITH (FORMAT binary) -> binary stream -> Arrow
 
 No S3 staging required. Works with any PostgreSQL-compatible database.
 Requires psycopg2 (copy_expert) or psycopg3 (copy) for streaming.
@@ -31,7 +31,7 @@ _PG_HEADER_FLAGS = struct.pack('>I', 0)    # 4-byte flags (no OID)
 _PG_HEADER_EXT = struct.pack('>I', 0)      # 4-byte header extension length
 _PG_TRAILER = struct.pack('>h', -1)        # 2-byte trailer (-1 = end)
 
-# Arrow type → PostgreSQL OID mapping (for binary COPY)
+# Arrow type -> PostgreSQL OID mapping (for binary COPY)
 # These are the standard PostgreSQL type OIDs
 _ARROW_TO_PG_OID = {
     pa.int16(): 21,      # int2
@@ -74,7 +74,7 @@ class PostgreSQLProvider:
 
     @property
     def uses_cloud_staging(self) -> bool:
-        """PostgreSQL COPY protocol streams directly — no cloud storage needed."""
+        """PostgreSQL COPY protocol streams directly  - no cloud storage needed."""
         return False
 
     def write_bulk(
@@ -166,7 +166,7 @@ class PostgreSQLProvider:
         """
         start = time.perf_counter()
 
-        # Build COPY command — wrap query in COPY TO STDOUT
+        # Build COPY command  - wrap query in COPY TO STDOUT
         copy_sql = f"COPY ({query}) TO STDOUT WITH (FORMAT csv, HEADER true)"
 
         # Execute via copy_expert (psycopg2) or copy (psycopg3)
@@ -178,7 +178,7 @@ class PostgreSQLProvider:
         csv_buffer.seek(0)
         csv_size = csv_buffer.getbuffer().nbytes
 
-        # Parse CSV → Arrow
+        # Parse CSV -> Arrow
         t = time.perf_counter()
         if csv_size == 0:
             table = pa.table({})
@@ -269,7 +269,7 @@ def _arrow_to_csv_copy(table: pa.Table, buf: io.BytesIO) -> None:
     Convert an Arrow table to CSV bytes suitable for COPY FROM STDIN.
 
     Uses PyArrow's CSV writer for correct type serialization.
-    No header row — COPY FROM STDIN with FORMAT csv expects data only.
+    No header row  - COPY FROM STDIN with FORMAT csv expects data only.
     """
     from pyarrow import csv as pa_csv
 

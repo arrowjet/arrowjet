@@ -40,7 +40,7 @@ class RedshiftArrowjetDialect(default.DefaultDialect):
     """
     SQLAlchemy dialect for Redshift using redshift_connector as DBAPI.
 
-    Safe mode only — no UNLOAD, no COPY, no auto-routing.
+    Safe mode only  - no UNLOAD, no COPY, no auto-routing.
     Bulk performance is accessed through the explicit Arrowjet API.
     """
 

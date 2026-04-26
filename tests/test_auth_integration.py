@@ -1,5 +1,5 @@
 """
-Integration tests for arrowjet.auth — real AWS + Redshift.
+Integration tests for arrowjet.auth  - real AWS + Redshift.
 
 Parametrized across three axes:
   - auth_type: password, iam, secrets_manager
@@ -32,7 +32,7 @@ def _has_aws() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Connection helpers — one per driver
+# Connection helpers  - one per driver
 # ---------------------------------------------------------------------------
 
 
@@ -107,7 +107,7 @@ def _can_run(auth_type: str, cluster: str) -> bool:
     if auth_type == "secrets_manager" and not _SECRET_ARN:
         return False
     if auth_type == "password" and cluster == "serverless":
-        # No password auth for serverless — IAM only
+        # No password auth for serverless  - IAM only
         return False
     return True
 
@@ -136,7 +136,7 @@ def _db_user_for(cluster: str) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
-# Parametrized: resolve_credentials → driver → SELECT current_user
+# Parametrized: resolve_credentials -> driver -> SELECT current_user
 # ---------------------------------------------------------------------------
 
 
@@ -171,7 +171,7 @@ def _make_test_params():
 
 class TestResolveAndConnect:
     """
-    Core test: resolve credentials → connect with driver → query.
+    Core test: resolve credentials -> connect with driver -> query.
 
     Parametrized across auth_type × driver × cluster_type.
     """
@@ -191,7 +191,7 @@ class TestResolveAndConnect:
 
 
 # ---------------------------------------------------------------------------
-# arrowjet.connect() with auth_type — unified path
+# arrowjet.connect() with auth_type  - unified path
 # ---------------------------------------------------------------------------
 
 
@@ -241,12 +241,12 @@ class TestArrowjetConnect:
 
 
 # ---------------------------------------------------------------------------
-# BYOC Engine with auth — the full pipeline
+# BYOC Engine with auth  - the full pipeline
 # ---------------------------------------------------------------------------
 
 
 class TestByocEngine:
-    """Test resolve_credentials → driver → Engine.read_bulk()."""
+    """Test resolve_credentials -> driver -> Engine.read_bulk()."""
 
     @pytest.mark.parametrize("driver,cluster", [
         pytest.param("redshift_connector", "provisioned", id="rs-provisioned"),
@@ -273,7 +273,7 @@ class TestByocEngine:
         # BYOC Engine needs autocommit for UNLOAD
         if driver == "redshift_connector":
             conn.autocommit = True
-        # ADBC: autocommit is set via connect() kwarg — reconnect
+        # ADBC: autocommit is set via connect() kwarg  - reconnect
         if driver == "adbc":
             conn.close()
             import adbc_driver_postgresql.dbapi

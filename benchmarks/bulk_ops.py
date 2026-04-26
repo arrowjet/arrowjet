@@ -1,6 +1,6 @@
 """
 Prototype bulk read/write operations via S3 staging.
-This is throwaway code — just enough to prove the concept and benchmark it.
+This is throwaway code  - just enough to prove the concept and benchmark it.
 
 v2: Uses pyarrow.fs.S3FileSystem for fast parallel Parquet reads,
     and pyarrow.parquet.ParquetDataset for reading UNLOAD output.
@@ -70,7 +70,7 @@ def read_bulk(
     cursor.execute(unload_sql)
 
     # Read Parquet files directly from S3 using PyArrow's native S3 filesystem
-    # This is MUCH faster than boto3 get_object — it reads in parallel and
+    # This is MUCH faster than boto3 get_object  - it reads in parallel and
     # avoids copying data through Python
     s3fs = pafs.S3FileSystem(region=region)
     dataset_path = f"{bucket}/{key_prefix}"

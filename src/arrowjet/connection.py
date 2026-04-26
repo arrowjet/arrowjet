@@ -1,5 +1,5 @@
 """
-Unified Arrowjet connection — the main entry point.
+Unified Arrowjet connection  - the main entry point.
 
 Provides both safe mode (DBAPI via ADBC PG driver) and bulk mode
 (read_bulk/write_bulk via the staging engine) through a single connect() call.
@@ -96,10 +96,10 @@ def connect(
     Staging parameters are required for bulk operations.
 
     Authentication:
-        auth_type="password" (default) — uses user/password directly.
-        auth_type="iam" — fetches temporary credentials via IAM
+        auth_type="password" (default)  - uses user/password directly.
+        auth_type="iam"  - fetches temporary credentials via IAM
             (GetClusterCredentials for provisioned, GetCredentials for serverless).
-        auth_type="secrets_manager" — fetches credentials from AWS Secrets Manager.
+        auth_type="secrets_manager"  - fetches credentials from AWS Secrets Manager.
 
     For IAM and Secrets Manager, boto3 must be installed and AWS credentials
     must be available (environment, IAM role, or ~/.aws/credentials).
@@ -189,7 +189,7 @@ class ArrowjetConnection:
             require_hint=(self._read_mode != ReadMode.AUTO),
         ))
 
-        # Bulk mode (optional — only if staging config provided)
+        # Bulk mode (optional  - only if staging config provided)
         self._staging_manager = None
         self._bulk_writer = None
         self._bulk_reader = None
@@ -341,7 +341,7 @@ class ArrowjetConnection:
 
     def read_bulk(self, query: str, **kwargs) -> ReadResult:
         """
-        Bulk read via UNLOAD → S3 → Parquet → Arrow.
+        Bulk read via UNLOAD -> S3 -> Parquet -> Arrow.
 
         User knows: this uses UNLOAD, hits S3, not transactional.
         Requires staging config.
@@ -378,7 +378,7 @@ class ArrowjetConnection:
 
     def read_auto(self, query: str, bulk_hint: bool = False, **kwargs):
         """
-        Auto-routed read — router decides direct vs bulk based on query analysis.
+        Auto-routed read  - router decides direct vs bulk based on query analysis.
 
         In Phase 1 (conservative): requires bulk_hint=True to use bulk path.
         In Phase 2 (read_mode="auto"): uses EXPLAIN to estimate and decide.
@@ -392,7 +392,7 @@ class ArrowjetConnection:
         )
 
         logger.info(
-            "Auto routing: %s — %s",
+            "Auto routing: %s  - %s",
             routing.decision.value, routing.reason,
         )
 
@@ -403,7 +403,7 @@ class ArrowjetConnection:
 
     def write_bulk(self, table: pa.Table, target_table: str, **kwargs) -> WriteResult:
         """
-        Bulk write via Arrow → Parquet → S3 → COPY.
+        Bulk write via Arrow -> Parquet -> S3 -> COPY.
 
         User knows: this uses COPY, stages through S3.
         Requires staging config.

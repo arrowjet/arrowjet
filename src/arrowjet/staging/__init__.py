@@ -1,4 +1,4 @@
-"""S3 Staging Subsystem — core infrastructure for all bulk operations."""
+"""S3 Staging Subsystem  - core infrastructure for all bulk operations."""
 
 from .config import StagingConfig
 from .namespace import StagingNamespace

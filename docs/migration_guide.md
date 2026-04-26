@@ -1,4 +1,4 @@
-# Migration Guide: redshift_connector → Arrowjet
+# Migration Guide: redshift_connector -> Arrowjet
 
 ## Safe Mode (Drop-in Replacement)
 
@@ -28,13 +28,13 @@ Key differences:
 
 ## Bulk Write (Replacing write_dataframe)
 
-### Before (redshift_connector — slow INSERT path)
+### Before (redshift_connector  - slow INSERT path)
 ```python
 cursor.write_dataframe(df, "target_table")
 conn.commit()
 ```
 
-### After (Arrowjet — COPY path, 3000x+ faster)
+### After (Arrowjet  - COPY path, 3000x+ faster)
 ```python
 conn.write_dataframe(df, "target_table")
 # or with Arrow directly:

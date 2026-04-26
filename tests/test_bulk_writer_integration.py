@@ -1,7 +1,7 @@
 """
-Integration tests for the bulk write engine — requires real Redshift + S3.
+Integration tests for the bulk write engine  - requires real Redshift + S3.
 
-Tests the full pipeline: Arrow → Parquet → S3 → COPY → verify.
+Tests the full pipeline: Arrow -> Parquet -> S3 -> COPY -> verify.
 Run with: PYTHONPATH=src pytest tests/test_bulk_writer_integration.py -v
 
 Requires env vars: REDSHIFT_HOST, REDSHIFT_PASS, STAGING_BUCKET, STAGING_IAM_ROLE
@@ -16,7 +16,7 @@ from arrowjet.bulk.writer import BulkWriter, BulkWriteError, WriteResult
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("REDSHIFT_HOST"),
-    reason="REDSHIFT_HOST not set — integration tests require env vars from .env",
+    reason="REDSHIFT_HOST not set  - integration tests require env vars from .env",
 )
 
 

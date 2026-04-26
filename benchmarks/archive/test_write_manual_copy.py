@@ -6,7 +6,7 @@ This simulates what a competent Redshift user does today:
   2. Upload to S3
   3. Run COPY command
 
-This is the fairness check — our product must be compared against
+This is the fairness check  - our product must be compared against
 the best practice, not just the worst case (write_dataframe).
 """
 
@@ -75,7 +75,7 @@ def main():
         password=rs["password"],
     )
 
-    # Generate data (not timed — same for all benchmarks)
+    # Generate data (not timed  - same for all benchmarks)
     print(f"Generating {ROWS:,} rows...")
     table = generate_arrow_table(ROWS, cfg)
     print(f"  Data ready: {table.nbytes / 1024 / 1024:.1f} MB")
@@ -144,7 +144,7 @@ def main():
     print(f"\n{'='*60}")
     print("ALL WRITE BASELINES COMPARED")
     print(f"{'='*60}")
-    print(f"  write_dataframe (INSERT):  12 rows/s → ~23 hours for 1M rows")
+    print(f"  write_dataframe (INSERT):  12 rows/s -> ~23 hours for 1M rows")
     print(f"  Manual COPY (user script): {total_no_cleanup:.2f}s for 1M rows ({ROWS/total_no_cleanup:,.0f} rows/s)")
     print(f"  Our write_bulk (automated):{our_copy_time:.2f}s for 1M rows ({ROWS/our_copy_time:,.0f} rows/s)")
     print(f"")
@@ -157,7 +157,7 @@ def main():
     elif total_no_cleanup < our_copy_time * 0.9:
         overhead = ((our_copy_time / total_no_cleanup) - 1) * 100
         print(f"    Convenience over speed: manual COPY is faster by ~{overhead:.0f}%")
-        print(f"    Our value is automation, safety, cleanup — not raw speed")
+        print(f"    Our value is automation, safety, cleanup  - not raw speed")
     else:
         print(f"    Parity: our automated pipeline matches manual COPY speed")
         print(f"    Our value is automation, safety, cleanup at no speed cost")

@@ -1,5 +1,5 @@
 """
-Airflow DAG: Export Redshift data to S3 — WITH Arrowjet CLI.
+Airflow DAG: Export Redshift data to S3  - WITH Arrowjet CLI.
 
 Zero Python. Just a bash command. Requires `arrowjet configure` to be
 run once on the Airflow worker (or env vars set).

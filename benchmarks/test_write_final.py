@@ -77,7 +77,7 @@ def run_manual(conn, table, cfg, s3, iteration, run_idx):
     cursor.execute(f"CREATE TABLE {tbl_name} ({col_defs(cfg)})")
     conn.commit()
 
-    # Parquet write (BytesIO — this is what a manual user would do)
+    # Parquet write (BytesIO  - this is what a manual user would do)
     t = time.perf_counter()
     buf = io.BytesIO()
     pq.write_table(table, buf, compression="snappy")
@@ -126,7 +126,7 @@ def run_tmpfile(conn, table, cfg, s3, iteration, run_idx):
     pq.write_table(table, tmp.name, compression="snappy")
     p_parquet = time.perf_counter() - t
 
-    # S3 upload (upload_file — uses transfer manager)
+    # S3 upload (upload_file  - uses transfer manager)
     t = time.perf_counter()
     s3.upload_file(tmp.name, stg["bucket"], key)
     p_upload = time.perf_counter() - t
@@ -248,7 +248,7 @@ def main():
     if ratio <= 1.15:
         print(f"\n  ✅ WRITE-SIDE VALIDATED: TmpFile is within 1.15x of manual COPY")
     else:
-        print(f"\n  ⚠️  TmpFile is {ratio:.2f}x of manual — investigate further")
+        print(f"\n  ⚠️  TmpFile is {ratio:.2f}x of manual  - investigate further")
 
     conn.close()
 

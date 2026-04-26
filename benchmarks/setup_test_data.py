@@ -30,7 +30,7 @@ def create_and_populate(conn, table_name: str, row_count: int, cfg: dict):
     cursor.execute(f"CREATE TABLE {table_name} ({col_defs})")
     conn.commit()
 
-    # Build SELECT expressions — one for seeding (with row number), one for doubling
+    # Build SELECT expressions  - one for seeding (with row number), one for doubling
     seed_select_cols = []
     double_select_cols = []
     for i in range(num_int):

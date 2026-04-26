@@ -1,8 +1,8 @@
 """
-Auto Mode — smart routing between direct fetch and bulk (UNLOAD) paths.
+Auto Mode  - smart routing between direct fetch and bulk (UNLOAD) paths.
 
-Phase 1: Conservative — only routes to bulk with explicit hints
-Phase 2: Heuristic — uses EXPLAIN to estimate result size
+Phase 1: Conservative  - only routes to bulk with explicit hints
+Phase 2: Heuristic  - uses EXPLAIN to estimate result size
 
 The router never silently changes semantics. If there's any ambiguity
 about whether bulk routing is safe, it falls back to direct execution.
@@ -106,7 +106,7 @@ class AutoRouter:
                 f"Not eligible for bulk: {eligibility.reason}",
             )
 
-        # Step 2: Phase 1 — require explicit hint
+        # Step 2: Phase 1  - require explicit hint
         if self._config.require_hint and not bulk_hint:
             return RoutingResult(
                 RoutingDecision.DIRECT,
@@ -120,7 +120,7 @@ class AutoRouter:
                 "User provided bulk_hint=True",
             )
 
-        # Step 4: Phase 2 — EXPLAIN-based estimation
+        # Step 4: Phase 2  - EXPLAIN-based estimation
         if self._config.use_explain:
             estimate = self._estimate_size(conn, query)
             if estimate:
@@ -146,7 +146,7 @@ class AutoRouter:
         # Default: direct
         return RoutingResult(
             RoutingDecision.DIRECT,
-            "No hint, no EXPLAIN estimate — defaulting to direct",
+            "No hint, no EXPLAIN estimate  - defaulting to direct",
         )
 
     def _estimate_size(self, conn, query: str) -> Optional[tuple[int, int]]:

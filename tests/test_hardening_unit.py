@@ -1,5 +1,5 @@
 """
-Unit tests for hardening — error classification, retry logic, connection checks.
+Unit tests for hardening  - error classification, retry logic, connection checks.
 Uses mocks, no AWS calls required.
 """
 

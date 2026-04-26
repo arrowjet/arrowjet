@@ -1,5 +1,5 @@
 """
-Arrowjet Engine — unified bulk data movement, bring your own connection.
+Arrowjet Engine  - unified bulk data movement, bring your own connection.
 
 Supports multiple databases through a single interface. The `provider`
 parameter selects the execution strategy:
@@ -10,12 +10,12 @@ parameter selects the execution strategy:
 Usage:
     import arrowjet
 
-    # PostgreSQL — no staging config needed
+    # PostgreSQL  - no staging config needed
     engine = arrowjet.Engine(provider="postgresql")
     engine.write_dataframe(pg_conn, df, "my_table")
     result = engine.read_bulk(pg_conn, "SELECT * FROM my_table")
 
-    # Redshift — needs S3 staging
+    # Redshift  - needs S3 staging
     engine = arrowjet.Engine(
         provider="redshift",
         staging_bucket="my-bucket",
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class Engine:
     """
-    Unified bulk data movement engine — bring your own connection.
+    Unified bulk data movement engine  - bring your own connection.
 
     Args:
         provider: Database provider ("postgresql" or "redshift"). Default: "redshift".
@@ -50,7 +50,7 @@ class Engine:
         staging_region: AWS region (Redshift only).
         ... (other staging options for Redshift)
 
-    PostgreSQL requires no staging config — just pass provider="postgresql".
+    PostgreSQL requires no staging config  - just pass provider="postgresql".
     """
 
     def __init__(
@@ -182,8 +182,8 @@ class Engine:
         """
         Bulk read from the database.
 
-        PostgreSQL: COPY (query) TO STDOUT → Arrow
-        Redshift: UNLOAD → S3 → Parquet → Arrow
+        PostgreSQL: COPY (query) TO STDOUT -> Arrow
+        Redshift: UNLOAD -> S3 -> Parquet -> Arrow
 
         Args:
             conn: DBAPI-compatible connection
@@ -204,8 +204,8 @@ class Engine:
         """
         Bulk write an Arrow table to the database.
 
-        PostgreSQL: Arrow → COPY FROM STDIN
-        Redshift: Arrow → Parquet → S3 → COPY
+        PostgreSQL: Arrow -> COPY FROM STDIN
+        Redshift: Arrow -> Parquet -> S3 -> COPY
 
         Args:
             conn: DBAPI-compatible connection
@@ -256,4 +256,4 @@ class Engine:
 
 # Backward-compatible alias
 PostgreSQLEngine = lambda: Engine(provider="postgresql")
-PostgreSQLEngine.__doc__ = "Alias for Engine(provider='postgresql'). Deprecated — use Engine(provider='postgresql') instead."
+PostgreSQLEngine.__doc__ = "Alias for Engine(provider='postgresql'). Deprecated  - use Engine(provider='postgresql') instead."

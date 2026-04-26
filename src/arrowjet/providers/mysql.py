@@ -1,9 +1,9 @@
 """
-MySQLProvider — bulk operations for MySQL, Aurora MySQL, and RDS MySQL.
+MySQLProvider  - bulk operations for MySQL, Aurora MySQL, and RDS MySQL.
 
 Uses MySQL's LOAD DATA LOCAL INFILE for high-speed bulk writes:
-  - Write: Arrow → CSV in memory → LOAD DATA LOCAL INFILE → table
-  - Read:  Standard cursor fetch → Arrow (no server-side bulk export in MySQL)
+  - Write: Arrow -> CSV in memory -> LOAD DATA LOCAL INFILE -> table
+  - Read:  Standard cursor fetch -> Arrow (no server-side bulk export in MySQL)
 
 LOAD DATA LOCAL INFILE bypasses the SQL parser and streams CSV data directly
 to the storage engine. Dramatically faster than INSERT for bulk loads.
@@ -38,7 +38,7 @@ class MySQLProvider:
         # Write (LOAD DATA LOCAL INFILE, 100x+ faster than INSERT)
         result = provider.write_bulk(conn, arrow_table, "my_table")
 
-        # Read (cursor fetch → Arrow)
+        # Read (cursor fetch -> Arrow)
         result = provider.read_bulk(conn, "SELECT * FROM my_table")
     """
 

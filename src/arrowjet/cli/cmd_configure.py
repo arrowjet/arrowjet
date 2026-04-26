@@ -1,5 +1,5 @@
 """
-arrowjet configure — interactive setup for ~/.arrowjet/config.yaml.
+arrowjet configure  - interactive setup for ~/.arrowjet/config.yaml.
 """
 
 import click
@@ -84,5 +84,5 @@ def configure(profile):
         conn.close()
         click.echo("Connection successful.")
     except Exception as e:
-        click.echo(f"Warning: Could not connect — {e}", err=True)
+        click.echo(f"Warning: Could not connect  - {e}", err=True)
         click.echo("Profile saved. Fix the connection details and run 'arrowjet configure' again.")

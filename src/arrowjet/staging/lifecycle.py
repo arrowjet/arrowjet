@@ -1,8 +1,8 @@
 """
-Staging operation lifecycle — tracks state transitions.
+Staging operation lifecycle  - tracks state transitions.
 
 States:
-  planned → files_staging → manifest_written → command_submitted → completed → cleanup_done
+  planned -> files_staging -> manifest_written -> command_submitted -> completed -> cleanup_done
                                                                       ↓
                                                                 cleanup_failed
 """

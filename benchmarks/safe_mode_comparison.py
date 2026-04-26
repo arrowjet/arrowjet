@@ -2,7 +2,7 @@
 Safe mode benchmark: ADBC vs redshift_connector vs pyodbc.
 
 Compares the three Python drivers for standard query execution (safe mode).
-This is NOT about bulk operations — it's about the baseline driver performance
+This is NOT about bulk operations  - it's about the baseline driver performance
 that tools like SQLAlchemy, dbt, and BI tools would see.
 
 Measures:
@@ -157,7 +157,7 @@ QUERIES = {
     "1M rows": "SELECT * FROM benchmark_test_1m",
 }
 
-ITERATIONS = 3  # reduced from 5 — 1M row tests take ~15s each
+ITERATIONS = 3  # reduced from 5  - 1M row tests take ~15s each
 
 
 def main():

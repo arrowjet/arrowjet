@@ -1,5 +1,5 @@
 """
-RedshiftProvider — bulk operations for Amazon Redshift.
+RedshiftProvider  - bulk operations for Amazon Redshift.
 
 Export: UNLOAD query TO S3 FORMAT PARQUET
 Import: COPY table FROM S3 FORMAT PARQUET

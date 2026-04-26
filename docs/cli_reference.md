@@ -17,7 +17,7 @@ arrowjet <command> [options]
 
 ## arrowjet configure
 
-Interactive setup — saves connection profile to `~/.arrowjet/config.yaml`.
+Interactive setup  - saves connection profile to `~/.arrowjet/config.yaml`.
 
 ```bash
 arrowjet configure
@@ -68,8 +68,8 @@ arrowjet export --query "SELECT * FROM sales" --to ./sales.csv --format csv
 
 | Option | Required | Default | Description |
 |---|---|---|---|
-| `--query` | Yes | — | SQL query to export |
-| `--to` | Yes | — | Destination path (local or s3://) |
+| `--query` | Yes |  - | SQL query to export |
+| `--to` | Yes |  - | Destination path (local or s3://) |
 | `--format` | No | `parquet` | Output format: `parquet` or `csv` |
 | `--profile` | No | default | Config profile name |
 | `--host` | No | profile | Redshift host |
@@ -83,8 +83,8 @@ arrowjet export --query "SELECT * FROM sales" --to ./sales.csv --format csv
 
 ### Routing behavior
 
-- S3 destination + staging config → bulk mode (UNLOAD, fast)
-- Local destination or no staging → safe mode (direct fetch)
+- S3 destination + staging config -> bulk mode (UNLOAD, fast)
+- Local destination or no staging -> safe mode (direct fetch)
 
 ---
 
@@ -101,7 +101,7 @@ arrowjet preview --file ./sales.parquet --rows 20
 
 | Option | Required | Default | Description |
 |---|---|---|---|
-| `--file` | Yes | — | Parquet file path (local or s3://) |
+| `--file` | Yes |  - | Parquet file path (local or s3://) |
 | `--schema` | No | off | Show schema only (no sample data) |
 | `--rows` | No | `10` | Number of sample rows to display |
 | `--region` | No | `us-east-1` | AWS region for S3 files |
@@ -130,7 +130,7 @@ Sample (10 rows):
 
 ## arrowjet validate
 
-Validate a Redshift table — row count, schema, and sample data.
+Validate a Redshift table  - row count, schema, and sample data.
 
 ```bash
 arrowjet validate --table sales
@@ -141,11 +141,11 @@ arrowjet validate --table sales --sample --sample-rows 10
 
 | Option | Required | Default | Description |
 |---|---|---|---|
-| `--table` | Yes | — | Table name |
+| `--table` | Yes |  - | Table name |
 | `--schema-name` | No | `public` | Schema name |
-| `--row-count` | No | — | Show row count |
-| `--schema` | No | — | Show table schema |
-| `--sample` | No | — | Show sample rows |
+| `--row-count` | No |  - | Show row count |
+| `--schema` | No |  - | Show table schema |
+| `--sample` | No |  - | Show sample rows |
 | `--sample-rows` | No | `5` | Number of sample rows |
 | `--profile` | No | default | Config profile name |
 | `--host` | No | profile | Redshift host |

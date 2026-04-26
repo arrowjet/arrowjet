@@ -1,10 +1,10 @@
 """
-arrowjet export — export data from Redshift to S3 or local file.
+arrowjet export  - export data from Redshift to S3 or local file.
 
-S3 destination: UNLOAD runs directly to the destination — no roundtrip
+S3 destination: UNLOAD runs directly to the destination  - no roundtrip
 through the client machine. Fast, efficient, data stays in AWS.
 
-Local destination: UNLOAD → staging S3 → download → local file.
+Local destination: UNLOAD -> staging S3 -> download -> local file.
 
 Examples:
     arrowjet export --query "SELECT * FROM sales" --to s3://bucket/sales/
@@ -90,10 +90,10 @@ def export(query, destination, fmt, profile, provider, host, database, user, pas
             table.to_pandas().to_csv(destination, index=False)
 
         elapsed = time.perf_counter() - start
-        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")
         return
 
-    # --- MySQL path: cursor fetch → Arrow (no S3 staging needed) ---
+    # --- MySQL path: cursor fetch -> Arrow (no S3 staging needed) ---
     if params.get("provider") == "mysql":
         from .config import make_mysql_connection, make_mysql_engine
 
@@ -113,7 +113,7 @@ def export(query, destination, fmt, profile, provider, host, database, user, pas
             table.to_pandas().to_csv(destination, index=False)
 
         elapsed = time.perf_counter() - start
-        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")
         return
 
     # --- Redshift path ---
@@ -157,7 +157,7 @@ def export(query, destination, fmt, profile, provider, host, database, user, pas
         click.echo(f"Exported to {destination} in {elapsed:.2f}s")
 
     else:
-        # Local destination: fetch → write locally
+        # Local destination: fetch -> write locally
         if params["staging_bucket"] and params["staging_iam_role"]:
             conn = make_arrowjet_connection(params)
             click.echo("Exporting via UNLOAD (bulk mode)...")
@@ -179,4 +179,4 @@ def export(query, destination, fmt, profile, provider, host, database, user, pas
             table.to_pandas().to_csv(destination, index=False)
 
         elapsed = time.perf_counter() - start
-        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s → {destination}")
+        click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")

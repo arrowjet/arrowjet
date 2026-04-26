@@ -1,5 +1,5 @@
 """
-Staging Manager — the main entry point for all staging operations.
+Staging Manager  - the main entry point for all staging operations.
 
 Coordinates namespace, upload, download, cleanup, and concurrency control.
 Validates configuration at initialization (fail-fast on misconfiguration).
@@ -138,7 +138,7 @@ class StagingManager:
             if operation.needs_cleanup:
                 self._cleanup.cleanup(operation)
             elif not operation.is_terminal:
-                # Operation was never completed or failed — mark as failed
+                # Operation was never completed or failed  - mark as failed
                 operation.fail("Operation abandoned without completion")
                 self._cleanup.cleanup(operation)
         finally:

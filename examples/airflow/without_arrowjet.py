@@ -1,8 +1,8 @@
 """
-Airflow DAG: Export Redshift data to S3 — WITHOUT Arrowjet.
+Airflow DAG: Export Redshift data to S3  - WITHOUT Arrowjet.
 
 This is what most teams write today: manual UNLOAD, S3 path management,
-cleanup, error handling, and IAM configuration — all inline.
+cleanup, error handling, and IAM configuration  - all inline.
 
 ~50 lines of boilerplate for a simple export.
 """
@@ -41,7 +41,7 @@ with DAG("export_without_arrowjet", start_date=datetime(2025, 1, 1), schedule="@
         )
 
         try:
-            # Execute UNLOAD — note: LIMIT requires subquery workaround
+            # Execute UNLOAD  - note: LIMIT requires subquery workaround
             cursor = conn.cursor()
             cursor.execute(f"""
                 UNLOAD ($$SELECT * FROM (SELECT * FROM benchmark_test_1m LIMIT 1000)$$)
@@ -64,7 +64,7 @@ with DAG("export_without_arrowjet", start_date=datetime(2025, 1, 1), schedule="@
             conn.close()
 
     def _cleanup_s3(bucket, prefix, region):
-        """Delete staged files — must handle manually."""
+        """Delete staged files  - must handle manually."""
         s3 = boto3.client("s3", region_name=region)
         paginator = s3.get_paginator("list_objects_v2")
         for page in paginator.paginate(Bucket=bucket, Prefix=prefix):

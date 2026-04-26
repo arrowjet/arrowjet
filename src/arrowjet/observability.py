@@ -1,5 +1,5 @@
 """
-Observability — metrics, tracing hooks, and cost logging.
+Observability  - metrics, tracing hooks, and cost logging.
 
 Provides:
   - ConnectionMetrics: cumulative counters per connection

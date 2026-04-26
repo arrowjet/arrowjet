@@ -91,7 +91,7 @@ def run_bulk_diagnostic(conn, table_name, cfg):
                 total_bytes += obj["Size"]
     p_list = time.perf_counter() - t
     total_mb = total_bytes / 1024 / 1024
-    print(f"           {p_list:.2f}s — {len(files)} files, {total_mb:.1f} MB")
+    print(f"           {p_list:.2f}s  - {len(files)} files, {total_mb:.1f} MB")
     for f in files:
         print(f"             {f['Key'].split('/')[-1]}: {f['Size']/1024/1024:.1f} MB")
 
@@ -104,7 +104,7 @@ def run_bulk_diagnostic(conn, table_name, cfg):
     p_read = time.perf_counter() - t
     rows = arrow_table.num_rows
     arrow_mb = arrow_table.nbytes / 1024 / 1024
-    print(f"           {p_read:.2f}s — {rows:,} rows, {arrow_mb:.0f} MB Arrow")
+    print(f"           {p_read:.2f}s  - {rows:,} rows, {arrow_mb:.0f} MB Arrow")
 
     # Cleanup (not timed)
     for page in paginator.paginate(Bucket=stg["bucket"], Prefix=key_prefix):

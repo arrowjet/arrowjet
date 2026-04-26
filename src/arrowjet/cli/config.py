@@ -1,5 +1,5 @@
 """
-CLI configuration — reads from ~/.arrowjet/config.yaml.
+CLI configuration  - reads from ~/.arrowjet/config.yaml.
 
 Stores connection profiles and defaults so users don't repeat
 --host, --staging-bucket, etc. on every command.
@@ -175,7 +175,7 @@ def make_arrowjet_connection(params: dict, need_staging: bool = False):
     """
     Create an arrowjet connection from resolved params.
 
-    Uses arrowjet.connect() with auth_type — all auth flows go through
+    Uses arrowjet.connect() with auth_type  - all auth flows go through
     the same path.
     """
     import arrowjet

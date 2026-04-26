@@ -1,5 +1,5 @@
 """
-arrowjet preview — quickly inspect Parquet files (local or S3).
+arrowjet preview  - quickly inspect Parquet files (local or S3).
 
 Examples:
     arrowjet preview --file ./sales.parquet

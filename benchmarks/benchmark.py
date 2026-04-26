@@ -229,8 +229,8 @@ def run_benchmarks():
             speedup = r_baseline["duration_s"] / r_bulk["duration_s"]
             print(f"  >> Read speedup: {speedup:.1f}x")
 
-        # Write benchmarks (use smaller counts for INSERT baseline — it's very slow)
-        write_count = min(row_count, 1000000)  # Cap INSERT at 1M — it's too slow beyond that
+        # Write benchmarks (use smaller counts for INSERT baseline  - it's very slow)
+        write_count = min(row_count, 1000000)  # Cap INSERT at 1M  - it's too slow beyond that
         print(f"\n--- WRITE ({write_count:,} rows) ---")
         try:
             w_baseline = benchmark_write_baseline(conn, table_name, write_count, cfg)

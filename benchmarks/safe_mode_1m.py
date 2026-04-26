@@ -1,5 +1,5 @@
 """
-Safe mode benchmark: 1M rows only — ADBC vs redshift_connector vs pyodbc.
+Safe mode benchmark: 1M rows only  - ADBC vs redshift_connector vs pyodbc.
 Focused on the scale where driver differences matter.
 """
 
@@ -62,7 +62,7 @@ def main():
         print(f"  median: {results['adbc_arrow']:.2f}s")
 
         # 2. ADBC to_dataframe
-        print(f"\n[adbc] fetch_arrow → to_pandas...")
+        print(f"\n[adbc] fetch_arrow -> to_pandas...")
         times = []
         for i in range(ITERATIONS):
             cursor = conn_adbc.cursor()
@@ -93,8 +93,8 @@ def main():
         results["rs_df"] = statistics.median(times)
         print(f"  median: {results['rs_df']:.2f}s")
 
-        # 4. pyodbc fetchall → DataFrame
-        print(f"\n[pyodbc] fetchall → DataFrame...")
+        # 4. pyodbc fetchall -> DataFrame
+        print(f"\n[pyodbc] fetchall -> DataFrame...")
         import pandas as pd
         times = []
         for i in range(ITERATIONS):
@@ -116,7 +116,7 @@ def main():
         print(f"\n  SUMMARY: {label} to DataFrame (median)")
         print(f"  {'─' * 50}")
         print(f"  ADBC (Arrow native):       {results['adbc_arrow']:.2f}s")
-        print(f"  ADBC (Arrow → pandas):     {results['adbc_df']:.2f}s")
+        print(f"  ADBC (Arrow -> pandas):     {results['adbc_df']:.2f}s")
         print(f"  redshift_connector:        {results['rs_df']:.2f}s")
         print(f"  pyodbc:                    {results['odbc_df']:.2f}s")
         print()

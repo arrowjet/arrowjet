@@ -1,5 +1,5 @@
 """
-Unit tests for SQLAlchemy dialect — type mapping and dialect properties.
+Unit tests for SQLAlchemy dialect  - type mapping and dialect properties.
 No AWS calls required.
 """
 

@@ -1,5 +1,5 @@
 """
-BulkProvider — abstract interface for database-specific bulk operations.
+BulkProvider  - abstract interface for database-specific bulk operations.
 
 Each database has its own way to export and import large datasets:
   - Redshift: UNLOAD (export) + COPY (import) via S3
@@ -21,7 +21,7 @@ from typing import Optional
 @dataclass(frozen=True)
 class ExportCommand:
     """
-    Result of build_export_sql() — the SQL to run on the database
+    Result of build_export_sql()  - the SQL to run on the database
     to export query results to cloud storage.
     """
     sql: str
@@ -32,7 +32,7 @@ class ExportCommand:
 @dataclass(frozen=True)
 class ImportCommand:
     """
-    Result of build_import_sql() — the SQL to run on the database
+    Result of build_import_sql()  - the SQL to run on the database
     to import data from cloud storage into a table.
     """
     sql: str
@@ -45,7 +45,7 @@ class BulkProvider(ABC):
     Abstract interface for database-specific bulk operations.
 
     Implement this to add support for a new database.
-    The core engine calls these methods — no database-specific
+    The core engine calls these methods  - no database-specific
     logic lives in BulkReader or BulkWriter.
     """
 

@@ -1,5 +1,5 @@
 """
-Unit tests for observability — metrics, tracing hooks, cost logging.
+Unit tests for observability  - metrics, tracing hooks, cost logging.
 No AWS calls required.
 """
 

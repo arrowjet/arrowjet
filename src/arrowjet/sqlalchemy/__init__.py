@@ -1,7 +1,7 @@
 """
 Arrowjet SQLAlchemy dialect for Redshift.
 
-Safe mode only — no UNLOAD, no COPY, no auto-routing through SQLAlchemy.
+Safe mode only  - no UNLOAD, no COPY, no auto-routing through SQLAlchemy.
 Bulk performance is accessed through the explicit Arrowjet API, not through SQLAlchemy.
 
 Usage:

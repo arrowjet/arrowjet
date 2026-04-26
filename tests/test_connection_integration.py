@@ -21,7 +21,7 @@ pytestmark = pytest.mark.skipif(
 
 
 def _connect_safe_only():
-    """Connect without staging — safe mode only."""
+    """Connect without staging  - safe mode only."""
     return arrowjet.connect(
         host=os.environ["REDSHIFT_HOST"],
         database=os.environ.get("REDSHIFT_DATABASE", "dev"),
@@ -32,7 +32,7 @@ def _connect_safe_only():
 
 
 def _connect_full():
-    """Connect with staging — safe + bulk mode."""
+    """Connect with staging  - safe + bulk mode."""
     return arrowjet.connect(
         host=os.environ["REDSHIFT_HOST"],
         database=os.environ.get("REDSHIFT_DATABASE", "dev"),
@@ -252,7 +252,7 @@ class TestTransactionsAndSafety:
 
     def test_autocommit_property(self):
         with _connect_safe_only() as conn:
-            # ADBC default may vary — just check it's accessible
+            # ADBC default may vary  - just check it's accessible
             _ = conn.autocommit
 
     def test_explicit_commit(self):
@@ -458,7 +458,7 @@ class TestAutoMode:
     def test_read_auto_ineligible_falls_back(self):
         """Ineligible query always routes to direct regardless of hint."""
         with _connect_full() as conn:
-            # INSERT is not eligible — should fall back to direct
+            # INSERT is not eligible  - should fall back to direct
             # But this would fail on execute, so test with a valid SELECT
             result = conn.read_auto("SELECT 1 AS test")
             assert result.num_rows == 1

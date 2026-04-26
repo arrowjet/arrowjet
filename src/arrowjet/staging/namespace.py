@@ -1,5 +1,5 @@
 """
-Staging namespace — generates unique, collision-free S3 paths.
+Staging namespace  - generates unique, collision-free S3 paths.
 
 Every staged operation gets a path like:
   s3://<bucket>/<prefix>/<cluster-id>/<database>/<conn-uuid>/<stmt-uuid>/<attempt>/

@@ -1,10 +1,10 @@
 """
-Arrowjet Quickstart — run this as a script or in Jupyter.
+Arrowjet Quickstart  - run this as a script or in Jupyter.
 
 Demonstrates:
   1. Safe mode (standard queries)
-  2. Bulk read (UNLOAD — fast for large results)
-  3. Bulk write (COPY — fast for loading data)
+  2. Bulk read (UNLOAD  - fast for large results)
+  3. Bulk write (COPY  - fast for loading data)
   4. Preview and validate
 
 Prerequisites:
@@ -30,11 +30,11 @@ conn = arrowjet.connect(
 
 print(conn)  # ArrowjetConnection(host=..., mode=safe+bulk)
 
-# %% Safe mode — standard queries
+# %% Safe mode  - standard queries
 df = conn.fetch_dataframe("SELECT * FROM users LIMIT 10")
 print(df)
 
-# %% Bulk read — fast for large results
+# %% Bulk read  - fast for large results
 result = conn.read_bulk("SELECT * FROM events WHERE date > '2025-01-01'")
 print(f"Read {result.rows:,} rows in {result.total_time_s}s")
 
@@ -42,7 +42,7 @@ print(f"Read {result.rows:,} rows in {result.total_time_s}s")
 df_events = result.to_pandas()
 print(df_events.head())
 
-# %% Bulk write — fast for loading data
+# %% Bulk write  - fast for loading data
 import pyarrow as pa
 import numpy as np
 
@@ -53,7 +53,7 @@ table = pa.table({
     "name": pa.array([f"item_{i}" for i in range(10000)], type=pa.string()),
 })
 
-# Write to Redshift (Arrow → Parquet → S3 → COPY)
+# Write to Redshift (Arrow -> Parquet -> S3 -> COPY)
 result = conn.write_bulk(table, "my_target_table")
 print(f"Wrote {result.rows:,} rows in {result.total_time_s}s")
 

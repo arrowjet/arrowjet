@@ -1,5 +1,5 @@
 """
-Bulk Read Engine — UNLOAD → S3 → Parquet → Arrow.
+Bulk Read Engine  - UNLOAD -> S3 -> Parquet -> Arrow.
 
 Production implementation built on M1 staging subsystem.
 Replaces the M0 prototype with proper lifecycle management,
@@ -51,7 +51,7 @@ class BulkReader:
         """
         Read query results from Redshift via UNLOAD.
 
-        Pipeline: UNLOAD → S3 (Parquet) → download → Arrow table
+        Pipeline: UNLOAD -> S3 (Parquet) -> download -> Arrow table
 
         Args:
             conn: redshift_connector Connection
@@ -109,7 +109,7 @@ class BulkReader:
             list_time = time.perf_counter() - t
 
             if not files:
-                # UNLOAD produced no files — query returned 0 rows
+                # UNLOAD produced no files  - query returned 0 rows
                 op.transition(OperationState.COMMAND_SUBMITTED)
                 op.transition(OperationState.COMPLETED)
                 op.rows_affected = 0
@@ -136,7 +136,7 @@ class BulkReader:
                 len(files), staged_bytes, op.path.s3_uri, unload_time,
             )
 
-            # Phase 3: Download Parquet → Arrow
+            # Phase 3: Download Parquet -> Arrow
             t = time.perf_counter()
             table = self._staging.downloader.read_parquet(op.path)
             download_time = time.perf_counter() - t

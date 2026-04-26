@@ -1,5 +1,5 @@
 """
-Cross-database transfer — move data between any two supported databases.
+Cross-database transfer  - move data between any two supported databases.
 
 Arrow is the universal in-memory format. Read from source as Arrow,
 write to destination from Arrow. No intermediate files, no serialization
@@ -19,12 +19,12 @@ Usage:
     print(f"Transferred {result.rows:,} rows in {result.total_time_s}s")
 
 Supported paths (any combination):
-    PostgreSQL → MySQL
-    PostgreSQL → Redshift
-    MySQL → PostgreSQL
-    MySQL → Redshift
-    Redshift → PostgreSQL
-    Redshift → MySQL
+    PostgreSQL -> MySQL
+    PostgreSQL -> Redshift
+    MySQL -> PostgreSQL
+    MySQL -> Redshift
+    Redshift -> PostgreSQL
+    Redshift -> MySQL
     ... and any future provider
 """
 
@@ -50,7 +50,7 @@ def transfer(
 
     Reads from source using the source engine's bulk read path,
     then writes to destination using the destination engine's bulk write path.
-    Arrow Table is the in-memory bridge — zero serialization overhead.
+    Arrow Table is the in-memory bridge  - zero serialization overhead.
 
     Args:
         source_engine: Engine for the source database
@@ -134,6 +134,6 @@ class TransferResult:
     def __repr__(self):
         return (
             f"TransferResult(rows={self.rows:,}, "
-            f"{self.source_provider}→{self.dest_provider}, "
+            f"{self.source_provider}->{self.dest_provider}, "
             f"total={self.total_time_s}s)"
         )

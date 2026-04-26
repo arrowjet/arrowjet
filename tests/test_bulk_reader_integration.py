@@ -1,7 +1,7 @@
 """
-Integration tests for the bulk read engine — requires real Redshift + S3.
+Integration tests for the bulk read engine  - requires real Redshift + S3.
 
-Tests the full pipeline: UNLOAD → S3 → Parquet → Arrow → verify.
+Tests the full pipeline: UNLOAD -> S3 -> Parquet -> Arrow -> verify.
 Requires env vars: REDSHIFT_HOST, REDSHIFT_PASS, STAGING_BUCKET, STAGING_IAM_ROLE
 """
 
@@ -146,7 +146,7 @@ class TestBulkReadEndToEnd:
 
 
     def test_read_with_limit(self, redshift_conn, staging_manager):
-        """LIMIT queries should work transparently — auto-wrapped by builder."""
+        """LIMIT queries should work transparently  - auto-wrapped by builder."""
         _setup_test_table(redshift_conn, "m3_test_limit", 500)
         reader = BulkReader(staging_manager)
 
@@ -160,7 +160,7 @@ class TestBulkReadEndToEnd:
             _drop_table(redshift_conn, "m3_test_limit")
 
     def test_read_with_limit_offset(self, redshift_conn, staging_manager):
-        """LIMIT + OFFSET queries should work transparently — auto-wrapped."""
+        """LIMIT + OFFSET queries should work transparently  - auto-wrapped."""
         _setup_test_table(redshift_conn, "m3_test_offset", 500)
         reader = BulkReader(staging_manager)
 

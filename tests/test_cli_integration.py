@@ -1,5 +1,5 @@
 """
-Integration tests for CLI commands — requires real Redshift + S3.
+Integration tests for CLI commands  - requires real Redshift + S3.
 
 Tests the full CLI pipeline against real infrastructure.
 Requires env vars: REDSHIFT_HOST, REDSHIFT_PASS, STAGING_BUCKET, STAGING_IAM_ROLE
@@ -267,7 +267,7 @@ class TestPreviewIntegration:
 
 
 # ===================================================================
-# IAM auth — CLI commands with --auth-type iam
+# IAM auth  - CLI commands with --auth-type iam
 # Parametrized across provisioned and serverless clusters.
 # ===================================================================
 
@@ -347,7 +347,7 @@ class TestCliIamAuth:
 
     @pytest.mark.parametrize("host,user", _CLUSTER_PARAMS)
     def test_import_s3_with_iam(self, host, user):
-        """Export → Import round-trip with IAM auth."""
+        """Export -> Import round-trip with IAM auth."""
         import redshift_connector
         from arrowjet.auth.redshift import resolve_credentials
 

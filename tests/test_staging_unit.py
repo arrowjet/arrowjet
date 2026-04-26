@@ -1,5 +1,5 @@
 """
-Unit tests for the staging subsystem — no AWS calls required.
+Unit tests for the staging subsystem  - no AWS calls required.
 Tests config validation, namespace generation, lifecycle state machine.
 """
 

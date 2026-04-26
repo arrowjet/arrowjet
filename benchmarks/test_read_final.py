@@ -219,9 +219,9 @@ def main():
     if speedup >= 3.0:
         print(f"\n  ✅ READ-SIDE VALIDATED: {speedup:.1f}x speedup on 4-node cluster")
     elif speedup >= 2.0:
-        print(f"\n  ⚠️  Moderate speedup ({speedup:.1f}x) — acceptable but below 3x target")
+        print(f"\n  ⚠️  Moderate speedup ({speedup:.1f}x)  - acceptable but below 3x target")
     else:
-        print(f"\n  ❌ Speedup below 2x — investigate")
+        print(f"\n  ❌ Speedup below 2x  - investigate")
 
     conn.close()
 

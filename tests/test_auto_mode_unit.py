@@ -1,5 +1,5 @@
 """
-Unit tests for auto mode — routing logic, EXPLAIN parsing, configuration.
+Unit tests for auto mode  - routing logic, EXPLAIN parsing, configuration.
 Uses mocks, no AWS calls required.
 """
 
@@ -22,7 +22,7 @@ class TestRoutingDecision:
 
 
 class TestAutoRouterPhase1:
-    """Phase 1: conservative — requires explicit hint."""
+    """Phase 1: conservative  - requires explicit hint."""
 
     def _make_router(self, **overrides):
         defaults = dict(require_hint=True, use_explain=False)

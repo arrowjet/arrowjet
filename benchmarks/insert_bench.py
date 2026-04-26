@@ -38,7 +38,7 @@ data = [(i, random.uniform(0, 1000), f"label_{i%100}") for i in range(ROWS)]
 print(f"Data ready\n", flush=True)
 
 # --- Lane 1: Multi-row VALUES (batch 5000) --- DONE: 195.77s
-# Commented out — result already captured
+# Commented out  - result already captured
 # print(f"[1/3] Multi-row VALUES INSERT (batch={BATCH})...", flush=True)
 # conn = get_conn()
 # setup(conn)

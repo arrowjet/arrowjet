@@ -1,7 +1,7 @@
 """
-Integration tests for the staging subsystem — requires real AWS credentials and S3 bucket.
+Integration tests for the staging subsystem  - requires real AWS credentials and S3 bucket.
 
-Tests the full cycle: validate → upload → list → download → cleanup.
+Tests the full cycle: validate -> upload -> list -> download -> cleanup.
 Run with: PYTHONPATH=src pytest tests/test_staging_integration.py -v
 
 Requires env vars: STAGING_BUCKET, STAGING_IAM_ROLE, STAGING_REGION
@@ -23,7 +23,7 @@ from arrowjet.staging.lifecycle import OperationState
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("STAGING_BUCKET"),
-    reason="STAGING_BUCKET not set — integration tests require env vars from .env",
+    reason="STAGING_BUCKET not set  - integration tests require env vars from .env",
 )
 
 BUCKET = os.environ.get("STAGING_BUCKET", "")

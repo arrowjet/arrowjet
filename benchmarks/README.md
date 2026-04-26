@@ -1,4 +1,4 @@
-# M0: Redshift Bulk Data Movement — Benchmark & Prototype
+# M0: Redshift Bulk Data Movement  - Benchmark & Prototype
 
 Proves the core value proposition: UNLOAD/COPY through S3 is 10-50x faster than wire protocol for bulk workloads.
 
@@ -29,10 +29,10 @@ python benchmark.py
 
 | Benchmark | Baseline | Prototype |
 |---|---|---|
-| Read 1M rows | `redshift_connector` fetch | `read_bulk` (UNLOAD → S3 → Parquet → Arrow) |
+| Read 1M rows | `redshift_connector` fetch | `read_bulk` (UNLOAD -> S3 -> Parquet -> Arrow) |
 | Read 10M rows | `redshift_connector` fetch | `read_bulk` |
 | Read 100M rows | `redshift_connector` fetch | `read_bulk` |
-| Write 1M rows | `redshift_connector` INSERT | `write_bulk` (Arrow → Parquet → S3 → COPY) |
+| Write 1M rows | `redshift_connector` INSERT | `write_bulk` (Arrow -> Parquet -> S3 -> COPY) |
 | Write 10M rows | `redshift_connector` INSERT | `write_bulk` |
 | Write 100M rows | `redshift_connector` INSERT | `write_bulk` |
 
@@ -51,6 +51,6 @@ Six-lane comparison of every common INSERT approach vs COPY:
 
 Key takeaways:
 - Every INSERT-based approach is orders of magnitude slower than COPY
-- `executemany` is actually *slower* than `write_dataframe` — row-by-row round trips dominate
+- `executemany` is actually *slower* than `write_dataframe`  - row-by-row round trips dominate
 - Parallelizing INSERT across 4 threads helps (148s vs 196s) but is still 45x slower than COPY
 - Arrowjet matches manual COPY performance with a one-line API

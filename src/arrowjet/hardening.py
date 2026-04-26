@@ -1,5 +1,5 @@
 """
-Hardening utilities — retry logic, connection health checks, and error classification.
+Hardening utilities  - retry logic, connection health checks, and error classification.
 
 Provides:
   - retry_on_transient: decorator for retrying transient failures

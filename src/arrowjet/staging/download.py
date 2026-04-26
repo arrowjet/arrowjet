@@ -1,5 +1,5 @@
 """
-S3 download engine — reads staged Parquet files into Arrow tables.
+S3 download engine  - reads staged Parquet files into Arrow tables.
 
 Uses PyArrow's native S3FileSystem for best performance (5x faster than
 boto3 sequential download, validated in M0 diagnostic).

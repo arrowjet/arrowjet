@@ -1,7 +1,7 @@
 """
-arrowjet import — load data into Redshift via COPY.
+arrowjet import  - load data into Redshift via COPY.
 
-For S3 sources: COPY runs directly from S3 to Redshift — no client roundtrip.
+For S3 sources: COPY runs directly from S3 to Redshift  - no client roundtrip.
 For local files: upload to staging S3, then COPY into Redshift.
 
 Examples:
@@ -67,7 +67,7 @@ def import_cmd(source, target_table, profile, host, database, user, password,
         from arrowjet.providers.redshift import RedshiftProvider
         from arrowjet.staging.config import StagingConfig
 
-        click.echo(f"Importing via COPY (direct from S3) → {target_table}...")
+        click.echo(f"Importing via COPY (direct from S3) -> {target_table}...")
 
         conn = make_raw_connection(params)
         conn.autocommit = False
@@ -98,7 +98,7 @@ def import_cmd(source, target_table, profile, host, database, user, password,
         except Exception as e:
             conn.rollback()
             conn.close()
-            click.echo(f"Error: COPY failed — {e}", err=True)
+            click.echo(f"Error: COPY failed  - {e}", err=True)
             sys.exit(1)
 
         conn.close()
@@ -113,7 +113,7 @@ def import_cmd(source, target_table, profile, host, database, user, password,
 
         import pyarrow.parquet as pq
 
-        click.echo(f"Importing {source} → {target_table} via staging S3...")
+        click.echo(f"Importing {source} -> {target_table} via staging S3...")
 
         if source.endswith(".parquet"):
             table = pq.read_table(source)

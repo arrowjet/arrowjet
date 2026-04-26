@@ -1,5 +1,5 @@
 """
-Unit tests for the bulk read engine — no AWS calls required.
+Unit tests for the bulk read engine  - no AWS calls required.
 Tests UNLOAD command generation, eligibility checking, and ReadResult.
 """
 
@@ -279,7 +279,7 @@ class TestEligibilityEdgeCases:
 
 
 class TestLimitWrapping:
-    """UNLOAD doesn't support LIMIT directly — builder should auto-wrap."""
+    """UNLOAD doesn't support LIMIT directly  - builder should auto-wrap."""
 
     def _build(self, query):
         from arrowjet.bulk.unload_builder import _wrap_if_limit
@@ -308,13 +308,13 @@ class TestLimitWrapping:
     def test_already_subquery_no_double_wrap(self):
         q = "SELECT * FROM (SELECT * FROM sales LIMIT 100)"
         result = self._build(q)
-        # Should not double-wrap — the outer query has no LIMIT
+        # Should not double-wrap  - the outer query has no LIMIT
         assert result == q
 
     def test_limit_in_subquery_no_wrap(self):
         q = "SELECT * FROM (SELECT * FROM sales LIMIT 100) WHERE id > 5"
         result = self._build(q)
-        # LIMIT is not at the end of the outer query — no wrap needed
+        # LIMIT is not at the end of the outer query  - no wrap needed
         assert result == q
 
 

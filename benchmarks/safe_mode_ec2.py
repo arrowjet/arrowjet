@@ -64,8 +64,8 @@ def main():
         adbc_arrow = statistics.median(times)
         print(f"    median: {adbc_arrow:.2f}s")
 
-        # ADBC Arrow → pandas
-        print(f"\n  [adbc] fetch_arrow → to_pandas...")
+        # ADBC Arrow -> pandas
+        print(f"\n  [adbc] fetch_arrow -> to_pandas...")
         times = []
         for i in range(ITERATIONS):
             cursor = conn_adbc.cursor()
@@ -96,8 +96,8 @@ def main():
         rs_df = statistics.median(times)
         print(f"    median: {rs_df:.2f}s")
 
-        # pyodbc fetchall → DataFrame
-        print(f"\n  [pyodbc] fetchall → DataFrame...")
+        # pyodbc fetchall -> DataFrame
+        print(f"\n  [pyodbc] fetchall -> DataFrame...")
         times = []
         for i in range(ITERATIONS):
             cursor = conn_odbc.cursor()
@@ -117,7 +117,7 @@ def main():
         # Summary for this table
         print(f"\n  --- {label} SUMMARY (median) ---")
         print(f"  ADBC Arrow native:     {adbc_arrow:.2f}s")
-        print(f"  ADBC Arrow → pandas:   {adbc_df:.2f}s")
+        print(f"  ADBC Arrow -> pandas:   {adbc_df:.2f}s")
         print(f"  redshift_connector:    {rs_df:.2f}s")
         print(f"  pyodbc:                {odbc_df:.2f}s")
         print(f"  ADBC Arrow vs RS:      {rs_df/adbc_arrow:.2f}x")
