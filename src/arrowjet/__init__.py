@@ -27,6 +27,6 @@ Usage:
 __version__ = "0.2.0"
 
 from .connection import connect, ArrowjetConnection, ArrowjetError
-from .engine import Engine
+from .engine import Engine, PostgreSQLEngine
 
-__all__ = ["connect", "ArrowjetConnection", "ArrowjetError", "Engine", "__version__"]
+__all__ = ["connect", "ArrowjetConnection", "ArrowjetError", "Engine", "PostgreSQLEngine", "__version__"]

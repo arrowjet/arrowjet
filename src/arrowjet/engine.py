@@ -174,3 +174,77 @@ class Engine:
     def __repr__(self):
         cfg = self._staging_manager.config
         return f"Engine(bucket={cfg.bucket}, region={cfg.region})"
+
+
+class PostgreSQLEngine:
+    """
+    Bulk data movement engine for PostgreSQL — no cloud staging required.
+
+    Uses PostgreSQL's native COPY protocol for high-speed bulk transfers.
+    Works with psycopg2 or psycopg3 connections to any PostgreSQL-compatible
+    database: Aurora PostgreSQL, RDS PostgreSQL, or self-hosted PostgreSQL.
+
+    Usage:
+        import arrowjet
+        import psycopg2
+
+        conn = psycopg2.connect(host=..., dbname=..., ...)
+
+        engine = arrowjet.PostgreSQLEngine()
+
+        # Bulk write — COPY FROM STDIN (10-50x faster than INSERT)
+        engine.write_dataframe(conn, df, "my_table")
+
+        # Bulk read — COPY TO STDOUT (2-5x faster than cursor.fetchall)
+        result = engine.read_bulk(conn, "SELECT * FROM my_table")
+        df = result.to_pandas()
+    """
+
+    def __init__(self):
+        from .providers.postgresql import PostgreSQLProvider
+        self._provider = PostgreSQLProvider()
+        logger.info("Arrowjet PostgreSQLEngine ready (COPY protocol, no S3 staging)")
+
+    def read_bulk(self, conn, query: str):
+        """
+        Bulk read via COPY (query) TO STDOUT → Arrow.
+
+        Args:
+            conn: psycopg2 or psycopg3 connection
+            query: SELECT query to execute
+
+        Returns:
+            PgReadResult with Arrow table, row count, and timing
+        """
+        return self._provider.read_bulk(conn, query)
+
+    def write_bulk(self, conn, table: pa.Table, target_table: str):
+        """
+        Bulk write via Arrow → COPY FROM STDIN.
+
+        Args:
+            conn: psycopg2 or psycopg3 connection
+            table: PyArrow Table to write
+            target_table: Target table name (must exist)
+
+        Returns:
+            PgWriteResult with row count and timing
+        """
+        return self._provider.write_bulk(conn, table, target_table)
+
+    def write_dataframe(self, conn, df, target_table: str):
+        """
+        Bulk write a pandas DataFrame via COPY.
+
+        Args:
+            conn: psycopg2 or psycopg3 connection
+            df: pandas DataFrame to write
+            target_table: Target table name (must exist)
+
+        Returns:
+            PgWriteResult with row count and timing
+        """
+        return self._provider.write_dataframe(conn, df, target_table)
+
+    def __repr__(self):
+        return "PostgreSQLEngine(protocol=COPY)"
