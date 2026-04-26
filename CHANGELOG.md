@@ -7,6 +7,20 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.5.0]  - 2026-04-26
+
+### Added
+- **Cross-database transfer**  - `arrowjet.transfer()` moves data between any two supported databases via Arrow. All 6 provider pairs (PostgreSQL, MySQL, Redshift) tested against real infrastructure.
+- **MySQL benchmarks**  - 1M rows on RDS MySQL 8.0 (EC2 same region): LOAD DATA write 3.87s (6.6x faster than executemany).
+- **Transfer benchmarks**  - 100K rows: PostgreSQL to MySQL in 0.64s, MySQL to PostgreSQL in 0.70s.
+- **20 new tests**  - 13 transfer unit (all provider pairs parameterized) + 7 transfer integration (including Redshift).
+
+### Changed
+- README updated with MySQL benchmarks, transfer benchmarks, and cross-database transfer section.
+- Replaced all unicode arrows and em dashes project-wide with ASCII equivalents.
+
+---
+
 ## [0.4.0]  - 2026-04-26
 
 ### Added

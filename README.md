@@ -40,6 +40,16 @@ Arrowjet uses each database's native bulk path instead. There is no slow path.
 
 *Benchmarked on RDS PostgreSQL 16.6, EC2 same region.*
 
+### MySQL - Writes (LOAD DATA LOCAL INFILE)
+
+| Approach | 1M rows | vs Arrowjet |
+|---|---|---|
+| `executemany` (batch 1000) | 25.4s | 6.6x slower |
+| Multi-row VALUES (batch 1000) | 25.7s | 6.7x slower |
+| **Arrowjet** | **3.87s** | **baseline** |
+
+*Benchmarked on RDS MySQL 8.0, EC2 same region.*
+
 ### Redshift  - Writes (COPY via S3)
 
 | Approach | 1M rows | vs Arrowjet |
@@ -95,7 +105,7 @@ conn = pymysql.connect(host="your-host", database="mydb", user="user",
 
 engine = arrowjet.Engine(provider="mysql")
 
-# Bulk write  - LOAD DATA LOCAL INFILE (100x+ faster than INSERT)
+# Bulk write - LOAD DATA LOCAL INFILE (6.6x faster than INSERT)
 engine.write_dataframe(conn, my_dataframe, "target_table")
 
 # Read  - cursor fetch to Arrow
@@ -200,6 +210,17 @@ arrowjet.transfer(
 ```
 
 All 6 combinations work: PostgreSQL, MySQL, and Redshift in any direction.
+
+### Transfer Benchmarks (100K rows, EC2 same region)
+
+| Path | Total | Read | Write | Rows/sec |
+|---|---|---|---|---|
+| PostgreSQL to MySQL | 0.64s | 0.10s | 0.54s | 157K/s |
+| MySQL to PostgreSQL | 0.70s | 0.58s | 0.12s | 143K/s |
+| PostgreSQL to Redshift | 17.2s | 0.06s | 17.1s | 5.8K/s |
+| Redshift to PostgreSQL | 6.5s | 6.4s | 0.12s | 15K/s |
+
+PostgreSQL and MySQL transfers are sub-second. Redshift paths include S3 staging overhead.
 
 ---
 
