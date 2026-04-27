@@ -36,3 +36,11 @@ __all__ = [
     "transfer", "TransferResult",
     "__version__",
 ]
+
+# Plugin auto-discovery: if extension packages are installed,
+# they register hooks, providers, or CLI commands on import.
+# Core is fully functional without any extensions.
+try:
+    import arrowjet_pro  # noqa: F401
+except ImportError:
+    pass

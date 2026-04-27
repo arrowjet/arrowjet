@@ -327,3 +327,96 @@ class TestPostgreSQLEngineRepr:
         engine = Engine(provider="postgresql")
         assert "postgresql" in repr(engine)
         assert "Engine(" in repr(engine)
+
+
+# --- Lifecycle hooks integration tests ---
+
+@pytest.mark.skipif(
+    not PG_HOST or not PG_PASS,
+    reason="PG_HOST and PG_PASS not set",
+)
+class TestHooksIntegration:
+    """Test lifecycle hooks fire correctly against real databases."""
+
+    @pytest.fixture
+    def pg_conn(self):
+        import psycopg2
+        conn = psycopg2.connect(
+            host=PG_HOST, port=int(os.environ.get("PG_PORT", "5432")),
+            dbname=os.environ.get("PG_DATABASE", "dev"),
+            user=os.environ.get("PG_USER", "awsuser"),
+            password=PG_PASS, connect_timeout=10,
+        )
+        yield conn
+        conn.close()
+
+    @pytest.fixture
+    def test_table(self, pg_conn):
+        name = f"hook_test_{int(time.time())}"
+        cursor = pg_conn.cursor()
+        cursor.execute(f"CREATE TABLE {name} (id BIGINT, val DOUBLE PRECISION)")
+        pg_conn.commit()
+        yield name
+        cursor.execute(f"DROP TABLE IF EXISTS {name}")
+        pg_conn.commit()
+
+    def test_write_hook_fires_with_real_db(self, pg_conn, test_table):
+        engine = Engine(provider="postgresql")
+        captured = []
+        engine.on("on_write_complete", lambda eng, res: captured.append(res.rows))
+
+        table = pa.table({"id": pa.array(range(100), type=pa.int64()),
+                          "val": pa.array([float(i) for i in range(100)], type=pa.float64())})
+        engine.write_bulk(pg_conn, table, test_table)
+
+        assert len(captured) == 1
+        assert captured[0] == 100
+
+    def test_read_hook_fires_with_real_db(self, pg_conn, test_table):
+        engine = Engine(provider="postgresql")
+
+        # Write some data first
+        table = pa.table({"id": pa.array(range(50), type=pa.int64()),
+                          "val": pa.array([float(i) for i in range(50)], type=pa.float64())})
+        engine.write_bulk(pg_conn, table, test_table)
+
+        # Now read with hook
+        captured = []
+        engine.on("on_read_complete", lambda eng, res: captured.append(res.rows))
+        engine.read_bulk(pg_conn, f"SELECT * FROM {test_table}")
+
+        assert len(captured) == 1
+        assert captured[0] == 50
+
+    def test_hook_can_inspect_result(self, pg_conn, test_table):
+        """Hook receives the full result object for inspection."""
+        engine = Engine(provider="postgresql")
+
+        table = pa.table({"id": pa.array([1, 2, 3], type=pa.int64()),
+                          "val": pa.array([10.0, 20.0, 30.0], type=pa.float64())})
+        engine.write_bulk(pg_conn, table, test_table)
+
+        results = []
+        engine.on("on_read_complete", lambda eng, res: results.append(res))
+        engine.read_bulk(pg_conn, f"SELECT * FROM {test_table}")
+
+        assert results[0].rows == 3
+        assert results[0].table.num_columns == 2
+
+    def test_hook_error_does_not_break_real_write(self, pg_conn, test_table):
+        engine = Engine(provider="postgresql")
+
+        def bad_hook(eng, res):
+            raise RuntimeError("hook exploded")
+
+        engine.on("on_write_complete", bad_hook)
+
+        table = pa.table({"id": pa.array([1], type=pa.int64()),
+                          "val": pa.array([1.0], type=pa.float64())})
+        result = engine.write_bulk(pg_conn, table, test_table)
+        assert result.rows == 1
+
+        # Data should still be in the table
+        cursor = pg_conn.cursor()
+        cursor.execute(f"SELECT COUNT(*) FROM {test_table}")
+        assert cursor.fetchone()[0] == 1

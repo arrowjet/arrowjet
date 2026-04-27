@@ -82,6 +82,11 @@ class Engine:
                 )
 
         self._provider_name = provider
+        self._hooks = {
+            "on_read_complete": [],
+            "on_write_complete": [],
+            "on_transfer_complete": [],
+        }
 
         if provider == "postgresql":
             self._init_postgresql()
@@ -193,12 +198,18 @@ class Engine:
             ReadResult (Redshift) or PgReadResult (PostgreSQL)
         """
         if self._is_pg:
-            return self._pg_provider.read_bulk(conn, query)
+            result = self._pg_provider.read_bulk(conn, query)
+            self._fire_hooks("on_read_complete", result)
+            return result
         if self._is_mysql:
-            return self._mysql_provider.read_bulk(conn, query)
-        return self._bulk_reader.read(
+            result = self._mysql_provider.read_bulk(conn, query)
+            self._fire_hooks("on_read_complete", result)
+            return result
+        result = self._bulk_reader.read(
             conn, query, autocommit=True, explicit_mode=True, **kwargs
         )
+        self._fire_hooks("on_read_complete", result)
+        return result
 
     def write_bulk(self, conn, table: pa.Table, target_table: str, **kwargs):
         """
@@ -216,10 +227,16 @@ class Engine:
             WriteResult (Redshift) or PgWriteResult (PostgreSQL)
         """
         if self._is_pg:
-            return self._pg_provider.write_bulk(conn, table, target_table)
+            result = self._pg_provider.write_bulk(conn, table, target_table)
+            self._fire_hooks("on_write_complete", result)
+            return result
         if self._is_mysql:
-            return self._mysql_provider.write_bulk(conn, table, target_table)
-        return self._bulk_writer.write(conn, table, target_table, **kwargs)
+            result = self._mysql_provider.write_bulk(conn, table, target_table)
+            self._fire_hooks("on_write_complete", result)
+            return result
+        result = self._bulk_writer.write(conn, table, target_table, **kwargs)
+        self._fire_hooks("on_write_complete", result)
+        return result
 
     def write_dataframe(self, conn, df, target_table: str, **kwargs):
         """
@@ -244,6 +261,34 @@ class Engine:
     def provider(self) -> str:
         """The active database provider name."""
         return self._provider_name
+
+    def on(self, event: str, callback):
+        """
+        Register a lifecycle hook.
+
+        Supported events:
+          - "on_read_complete": called after every read_bulk with (engine, result)
+          - "on_write_complete": called after every write_bulk with (engine, result)
+          - "on_transfer_complete": called after every transfer with (engine, result)
+
+        Usage:
+            engine.on("on_write_complete", lambda eng, res: print(f"Wrote {res.rows} rows"))
+
+        Pro extensions use this to add validation, metrics, and audit logging
+        without modifying the core engine.
+        """
+        if event not in self._hooks:
+            raise ValueError(f"Unknown hook event: '{event}'. Supported: {list(self._hooks.keys())}")
+        self._hooks[event].append(callback)
+        return self
+
+    def _fire_hooks(self, event: str, result):
+        """Fire all registered callbacks for an event."""
+        for callback in self._hooks.get(event, []):
+            try:
+                callback(self, result)
+            except Exception as e:
+                logger.warning("Hook %s raised: %s", event, e)
 
     def __repr__(self):
         if self._is_pg:

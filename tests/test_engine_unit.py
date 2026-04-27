@@ -301,3 +301,99 @@ class TestEnginePublicAPI:
         rs = _make_redshift_engine()
         assert pg.provider == "postgresql"
         assert rs.provider == "redshift"
+
+
+# --- Lifecycle hooks ---
+
+class TestEngineHooks:
+    def test_on_write_complete_fires(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert = MagicMock()
+
+        captured = []
+        engine.on("on_write_complete", lambda eng, res: captured.append(res.rows))
+
+        table = pa.table({"id": pa.array([1, 2], type=pa.int64())})
+        engine.write_bulk(mock_conn, table, "t")
+
+        assert len(captured) == 1
+        assert captured[0] == 2
+
+    def test_on_read_complete_fires(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert.side_effect = lambda sql, buf: buf.write(b"id\n1\n2\n")
+
+        captured = []
+        engine.on("on_read_complete", lambda eng, res: captured.append(res.rows))
+
+        engine.read_bulk(mock_conn, "SELECT id FROM t")
+
+        assert len(captured) == 1
+        assert captured[0] == 2
+
+    def test_multiple_hooks_fire_in_order(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert = MagicMock()
+
+        order = []
+        engine.on("on_write_complete", lambda eng, res: order.append("first"))
+        engine.on("on_write_complete", lambda eng, res: order.append("second"))
+
+        table = pa.table({"id": pa.array([1], type=pa.int64())})
+        engine.write_bulk(mock_conn, table, "t")
+
+        assert order == ["first", "second"]
+
+    def test_hook_receives_engine_reference(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert = MagicMock()
+
+        captured_engine = []
+        engine.on("on_write_complete", lambda eng, res: captured_engine.append(eng))
+
+        table = pa.table({"id": pa.array([1], type=pa.int64())})
+        engine.write_bulk(mock_conn, table, "t")
+
+        assert captured_engine[0] is engine
+
+    def test_hook_error_does_not_break_operation(self):
+        engine = _make_pg_engine()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.copy_expert = MagicMock()
+
+        def bad_hook(eng, res):
+            raise ValueError("hook crashed")
+
+        engine.on("on_write_complete", bad_hook)
+
+        table = pa.table({"id": pa.array([1], type=pa.int64())})
+        result = engine.write_bulk(mock_conn, table, "t")
+        assert result.rows == 1  # operation still succeeds
+
+    def test_unknown_hook_event_raises(self):
+        engine = _make_pg_engine()
+        with pytest.raises(ValueError, match="Unknown hook event"):
+            engine.on("on_something_weird", lambda e, r: None)
+
+    def test_on_returns_engine_for_chaining(self):
+        engine = _make_pg_engine()
+        result = engine.on("on_write_complete", lambda e, r: None)
+        assert result is engine
+
+    def test_redshift_engine_hooks_fire(self):
+        engine = _make_redshift_engine()
+        expected = _mock_write_result()
+        engine._bulk_writer.write.return_value = expected
+
+        captured = []
+        engine.on("on_write_complete", lambda eng, res: captured.append(res.rows))
+
+        mock_conn = MagicMock()
+        engine.write_bulk(mock_conn, pa.table({"id": [1]}), "t")
+
+        assert len(captured) == 1
+        assert captured[0] == 3  # from mock
