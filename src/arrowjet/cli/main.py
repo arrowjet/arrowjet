@@ -33,8 +33,24 @@ cli.add_command(preview)
 cli.add_command(validate)
 cli.add_command(transfer_cmd)
 
+# Plugin CLI discovery: extensions can register additional commands
+_cli_plugins = []
+
+
+def register_cli_command(command):
+    """
+    Register an additional CLI command from a plugin.
+
+    Called by extension packages (e.g., arrowjet-pro) to add commands
+    like `arrowjet schema-check` or `arrowjet drift-report`.
+    """
+    _cli_plugins.append(command)
+    cli.add_command(command)
+
 
 def main():
+    # Ensure plugin discovery runs before CLI
+    import arrowjet  # noqa: F401 - triggers plugin auto-discovery
     cli()
 
 
