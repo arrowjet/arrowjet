@@ -351,8 +351,20 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 - [x] PostgreSQL (COPY protocol)
 - [x] MySQL (LOAD DATA LOCAL INFILE)
 - [x] Cross-database transfer (`arrowjet.transfer()`)
-- [ ] Snowflake (COPY INTO via stages)
-- [ ] Data validation (row counts, schema checks, null detection)
+- [ ] `arrowjet benchmark` - CLI command to compare INSERT vs COPY speed on your own data
+- [ ] Chunked `read_bulk` - iterator mode for memory-constrained environments (Lambda, notebooks)
+- [ ] CSV/JSON staging format support for COPY/UNLOAD
+- [ ] Snowflake provider (COPY INTO via stages)
+- [ ] BigQuery provider (GCS + Load API)
+- [ ] Databricks provider (cloud storage + COPY INTO)
+- [ ] IAM database auth for Aurora PostgreSQL / Aurora MySQL
+- [ ] Data validation - row counts, null rates, duplicate detection
+- [ ] Airflow provider package (`apache-airflow-providers-arrowjet`)
+- [ ] Homebrew formula (`brew install arrowjet`)
+- [ ] Docker image for CI/CD pipelines
+- [ ] Observability dashboard for operation history and cost tracking
+
+Contributions welcome! See [docs/extending.md](https://github.com/arrowjet/arrowjet/blob/main/docs/extending.md) for the plugin and provider API.
 
 ---
 
