@@ -231,6 +231,10 @@ PostgreSQL and MySQL transfers are sub-second. Redshift paths include S3 staging
 arrowjet export --provider postgresql --query "SELECT * FROM users" --to ./users.parquet
 arrowjet export --provider postgresql --query "SELECT * FROM users" --to ./users.csv --format csv
 
+# MySQL
+arrowjet export --provider mysql --query "SELECT * FROM orders" --to ./orders.parquet
+arrowjet export --provider mysql --query "SELECT * FROM orders" --to ./orders.csv --format csv
+
 # Redshift
 arrowjet export --query "SELECT * FROM sales" --to ./out.parquet
 arrowjet export --query "SELECT * FROM sales" --to s3://bucket/sales/
@@ -243,6 +247,18 @@ arrowjet validate --table sales --row-count --schema --sample
 
 # Configure profiles
 arrowjet configure
+
+# Transfer between databases (inline credentials)
+arrowjet transfer \
+  --from-provider postgresql --from-host pg-host --from-password pgpass \
+  --to-provider mysql --to-host mysql-host --to-password mypass \
+  --query "SELECT * FROM orders" --to-table orders
+
+# Transfer between databases (using profiles)
+arrowjet transfer \
+  --from-profile my-postgres \
+  --to-profile my-mysql \
+  --query "SELECT * FROM orders" --to-table orders
 ```
 
 All commands read connection details from `~/.arrowjet/config.yaml` (set up with `arrowjet configure`).

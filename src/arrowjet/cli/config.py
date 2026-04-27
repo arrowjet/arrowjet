@@ -126,6 +126,7 @@ def resolve_cli_connection_params(profile, host, database, user, password,
     resolved_region = resolve_option(region, "staging_region", "STAGING_REGION", prof) or "us-east-1"
     resolved_auth = auth_type or prof.get("auth", "password")
     resolved_secret_arn = resolve_option(secret_arn, "secret_arn", "REDSHIFT_AUTH_SECRET_ARN", prof)
+    resolved_aws_profile = prof.get("aws_profile")
 
     return {
         "provider": resolved_provider,
@@ -136,6 +137,7 @@ def resolve_cli_connection_params(profile, host, database, user, password,
         "password": resolved_password,
         "auth_type": resolved_auth,
         "secret_arn": resolved_secret_arn,
+        "aws_profile": resolved_aws_profile,
         "staging_bucket": resolved_bucket,
         "staging_iam_role": resolved_iam_role,
         "staging_region": resolved_region,
@@ -193,6 +195,9 @@ def make_arrowjet_connection(params: dict, need_staging: bool = False):
         auth_type=params["auth_type"],
         aws_region=params["staging_region"],
     )
+
+    if params.get("aws_profile"):
+        kwargs["aws_profile"] = params["aws_profile"]
 
     if params["auth_type"] == "secrets_manager":
         kwargs["secret_arn"] = params["secret_arn"]

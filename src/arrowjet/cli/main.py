@@ -16,6 +16,7 @@ from .cmd_export import export
 from .cmd_import import import_cmd
 from .cmd_preview import preview
 from .cmd_validate import validate
+from .cmd_transfer import transfer_cmd
 
 
 @click.group()
@@ -30,6 +31,7 @@ cli.add_command(export)
 cli.add_command(import_cmd)
 cli.add_command(preview)
 cli.add_command(validate)
+cli.add_command(transfer_cmd)
 
 
 def main():

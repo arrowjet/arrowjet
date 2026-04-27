@@ -570,3 +570,66 @@ class TestMySQLExportIntegration:
         ])
         assert result.exit_code == 0, result.output
         assert "cursor fetch" in result.output
+
+
+# --- Transfer CLI Integration Tests ---
+
+@pytest.mark.skipif(
+    not os.environ.get("PG_HOST") or not os.environ.get("PG_PASS")
+    or not os.environ.get("MYSQL_HOST") or not os.environ.get("MYSQL_PASS"),
+    reason="PG and MySQL credentials required",
+)
+class TestTransferCliIntegration:
+    """Test CLI transfer between real databases."""
+
+    @pytest.fixture(autouse=True)
+    def setup_dest_table(self):
+        """Create destination table in MySQL before each test, drop after."""
+        import pymysql
+        conn = pymysql.connect(
+            host=os.environ["MYSQL_HOST"], port=3306, database="dev",
+            user="awsuser", password=os.environ["MYSQL_PASS"],
+            local_infile=True,
+        )
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS cli_xfer_test")
+        cursor.execute("CREATE TABLE cli_xfer_test (id BIGINT)")
+        conn.commit()
+        yield
+        cursor.execute("DROP TABLE IF EXISTS cli_xfer_test")
+        conn.commit()
+        conn.close()
+
+    def test_pg_to_mysql_transfer(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "transfer",
+            "--from-provider", "postgresql",
+            "--from-host", os.environ["PG_HOST"],
+            "--from-password", os.environ["PG_PASS"],
+            "--to-provider", "mysql",
+            "--to-host", os.environ["MYSQL_HOST"],
+            "--to-password", os.environ["MYSQL_PASS"],
+            "--query", "SELECT generate_series(1, 100) AS id",
+            "--to-table", "cli_xfer_test",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "Transferred" in result.output
+        assert "100" in result.output
+
+    def test_transfer_shows_providers(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, [
+            "transfer",
+            "--from-provider", "postgresql",
+            "--from-host", os.environ["PG_HOST"],
+            "--from-password", os.environ["PG_PASS"],
+            "--to-provider", "mysql",
+            "--to-host", os.environ["MYSQL_HOST"],
+            "--to-password", os.environ["MYSQL_PASS"],
+            "--query", "SELECT 1 AS id",
+            "--to-table", "cli_xfer_test",
+        ])
+        assert result.exit_code == 0, result.output
+        assert "postgresql" in result.output
+        assert "mysql" in result.output

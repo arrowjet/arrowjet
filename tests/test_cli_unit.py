@@ -399,3 +399,31 @@ class TestConfigResolveMysql:
         runner = CliRunner()
         result = runner.invoke(cli, ["export", "--help"])
         assert "mysql" in result.output
+
+
+class TestTransferCli:
+    def test_transfer_help(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["transfer", "--help"])
+        assert result.exit_code == 0
+        assert "--from-provider" in result.output
+        assert "--to-provider" in result.output
+        assert "--query" in result.output
+        assert "--to-table" in result.output
+
+    def test_transfer_missing_query(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["transfer", "--to-table", "t"])
+        assert result.exit_code != 0
+
+    def test_transfer_missing_to_table(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["transfer", "--query", "SELECT 1"])
+        assert result.exit_code != 0
+
+    def test_transfer_shows_all_providers(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["transfer", "--help"])
+        assert "postgresql" in result.output
+        assert "mysql" in result.output
+        assert "redshift" in result.output
