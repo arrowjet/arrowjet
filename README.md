@@ -364,7 +364,7 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 - [ ] Docker image for CI/CD pipelines
 - [ ] Observability dashboard for operation history and cost tracking
 
-Contributions welcome! See [docs/extending.md](https://github.com/arrowjet/arrowjet/blob/main/docs/extending.md) for the plugin and provider API.
+Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
 
 ---
 
