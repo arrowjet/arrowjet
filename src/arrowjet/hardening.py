@@ -150,4 +150,5 @@ def check_connection_or_raise(conn, label: str = "connection"):
 
 
 class ConnectionLostError(Exception):
+    """Connection to the database was lost."""
     pass

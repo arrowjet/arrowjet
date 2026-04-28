@@ -27,10 +27,13 @@ def _mock_engine(provider_name, read_rows=100):
     mock_result.rows = read_rows
     engine.read_bulk.return_value = mock_result
 
-    # Mock write_bulk
-    mock_write = MagicMock()
-    mock_write.rows = read_rows
-    engine.write_bulk.return_value = mock_write
+    # Mock write_bulk - return rows matching the input table
+    def _write_bulk(conn, tbl, target, **kwargs):
+        m = MagicMock()
+        m.rows = tbl.num_rows
+        return m
+
+    engine.write_bulk.side_effect = _write_bulk
 
     return engine
 
@@ -73,8 +76,8 @@ class TestTransfer:
         # Read was called on source
         src.read_bulk.assert_called_once_with(src_conn, "SELECT * FROM t")
 
-        # Write was called on destination with the Arrow table from read
-        dst.write_bulk.assert_called_once()
+        # Write was called on destination
+        assert dst.write_bulk.call_count == 1
         write_args = dst.write_bulk.call_args
         assert write_args[0][0] is dst_conn
         assert isinstance(write_args[0][1], pa.Table)
@@ -167,3 +170,107 @@ class TestTransferPublicAPI:
         import arrowjet
         assert "transfer" in arrowjet.__all__
         assert "TransferResult" in arrowjet.__all__
+
+
+# ---------------------------------------------------------------------------
+# Chunked transfer, validation, error classification
+# ---------------------------------------------------------------------------
+
+class TestTransferChunked:
+    def test_chunked_write(self):
+        src = _mock_engine("postgresql", read_rows=100)
+        dst = _mock_engine("mysql")
+
+        result = transfer(
+            source_engine=src, source_conn=MagicMock(),
+            query="SELECT * FROM t",
+            dest_engine=dst, dest_conn=MagicMock(),
+            dest_table="t",
+            chunk_size=30,
+        )
+
+        assert result.rows == 100
+        # 100 rows / 30 chunk = 4 calls (30+30+30+10)
+        assert dst.write_bulk.call_count == 4
+
+    def test_chunked_single_chunk(self):
+        """chunk_size larger than data -> single write call."""
+        src = _mock_engine("postgresql", read_rows=10)
+        dst = _mock_engine("mysql")
+
+        result = transfer(
+            source_engine=src, source_conn=MagicMock(),
+            query="SELECT * FROM t",
+            dest_engine=dst, dest_conn=MagicMock(),
+            dest_table="t",
+            chunk_size=1000,
+        )
+
+        assert result.rows == 10
+        assert dst.write_bulk.call_count == 1
+
+    def test_chunked_none_is_single_shot(self):
+        """chunk_size=None -> single write call."""
+        src = _mock_engine("postgresql", read_rows=50)
+        dst = _mock_engine("mysql")
+
+        transfer(
+            source_engine=src, source_conn=MagicMock(),
+            query="SELECT * FROM t",
+            dest_engine=dst, dest_conn=MagicMock(),
+            dest_table="t",
+            chunk_size=None,
+        )
+
+        assert dst.write_bulk.call_count == 1
+
+
+class TestTransferValidation:
+    def test_validate_passes_on_match(self):
+        src = _mock_engine("postgresql", read_rows=50)
+        dst = _mock_engine("mysql")
+
+        result = transfer(
+            source_engine=src, source_conn=MagicMock(),
+            query="SELECT * FROM t",
+            dest_engine=dst, dest_conn=MagicMock(),
+            dest_table="t",
+            validate=True,
+        )
+
+        assert result.rows == 50
+
+    def test_validate_raises_on_mismatch(self):
+        src = _mock_engine("postgresql", read_rows=50)
+        dst = _mock_engine("mysql")
+        # Override write to return fewer rows than read
+        dst.write_bulk.side_effect = None
+        dst.write_bulk.return_value = MagicMock(rows=30)
+
+        from arrowjet.connection import DataError
+
+        with pytest.raises(DataError, match="Row count mismatch"):
+            transfer(
+                source_engine=src, source_conn=MagicMock(),
+                query="SELECT * FROM t",
+                dest_engine=dst, dest_conn=MagicMock(),
+                dest_table="t",
+                validate=True,
+            )
+
+    def test_validate_false_ignores_mismatch(self):
+        src = _mock_engine("postgresql", read_rows=50)
+        dst = _mock_engine("mysql")
+        dst.write_bulk.side_effect = None
+        dst.write_bulk.return_value = MagicMock(rows=30)
+
+        # Should not raise
+        result = transfer(
+            source_engine=src, source_conn=MagicMock(),
+            query="SELECT * FROM t",
+            dest_engine=dst, dest_conn=MagicMock(),
+            dest_table="t",
+            validate=False,
+        )
+
+        assert result.rows == 30

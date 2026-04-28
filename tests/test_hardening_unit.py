@@ -157,3 +157,97 @@ class TestConnectionCheck:
         conn.cursor.side_effect = Exception("connection closed")
         with pytest.raises(ConnectionLostError, match="no longer responsive"):
             check_connection_or_raise(conn)
+
+
+# ---------------------------------------------------------------------------
+# Bulk error classification (_classify_bulk_error in connection.py)
+# ---------------------------------------------------------------------------
+
+from arrowjet.connection import (
+    _classify_bulk_error, ArrowjetError, S3Error, DataError, TransientError,
+)
+
+
+class TestClassifyBulkError:
+    def test_s3_bucket_error(self):
+        err = Exception("NoSuchBucket: the bucket does not exist")
+        result = _classify_bulk_error(err, "write")
+        assert isinstance(result, S3Error)
+
+    def test_s3_access_denied(self):
+        err = Exception("AccessDenied: not authorized")
+        result = _classify_bulk_error(err, "read")
+        assert isinstance(result, S3Error)
+
+    def test_transient_timeout(self):
+        err = Exception("Connection timed out after 30s")
+        result = _classify_bulk_error(err, "write")
+        assert isinstance(result, TransientError)
+
+    def test_transient_connection_reset(self):
+        err = Exception("Connection reset by peer")
+        result = _classify_bulk_error(err, "read")
+        assert isinstance(result, TransientError)
+
+    def test_data_schema_mismatch(self):
+        err = Exception("column 'price' type mismatch: expected int, got varchar")
+        result = _classify_bulk_error(err, "write")
+        assert isinstance(result, DataError)
+
+    def test_data_incompatible_type(self):
+        err = Exception("incompatible data type for column 'ts'")
+        result = _classify_bulk_error(err, "write")
+        assert isinstance(result, DataError)
+
+    def test_unknown_falls_to_arrowjet_error(self):
+        err = Exception("something completely unexpected")
+        result = _classify_bulk_error(err, "write")
+        assert isinstance(result, ArrowjetError)
+        assert not isinstance(result, (S3Error, DataError, TransientError))
+
+    def test_already_classified_passthrough(self):
+        err = S3Error("already classified")
+        result = _classify_bulk_error(err, "write")
+        assert result is err  # same object, not re-wrapped
+
+    def test_already_classified_data_error(self):
+        err = DataError("already classified")
+        result = _classify_bulk_error(err, "write")
+        assert result is err
+
+    def test_already_classified_transient(self):
+        err = TransientError("already classified")
+        result = _classify_bulk_error(err, "write")
+        assert result is err
+
+    def test_connection_lost_becomes_transient(self):
+        err = ConnectionLostError("connection dropped")
+        result = _classify_bulk_error(err, "read")
+        assert isinstance(result, TransientError)
+
+    def test_operation_label_in_message(self):
+        err = Exception("timeout")
+        result = _classify_bulk_error(err, "write")
+        assert "write" in str(result)
+
+        result2 = _classify_bulk_error(Exception("timeout"), "read")
+        assert "read" in str(result2)
+
+
+class TestErrorExports:
+    def test_errors_exported_from_arrowjet(self):
+        import arrowjet
+        assert hasattr(arrowjet, "S3Error")
+        assert hasattr(arrowjet, "DataError")
+        assert hasattr(arrowjet, "TransientError")
+        assert hasattr(arrowjet, "ConnectionLostError")
+
+    def test_error_hierarchy(self):
+        assert issubclass(S3Error, ArrowjetError)
+        assert issubclass(DataError, ArrowjetError)
+        assert issubclass(TransientError, ArrowjetError)
+
+    def test_connection_lost_is_catchable(self):
+        """ConnectionLostError should be catchable as Exception."""
+        with pytest.raises(Exception):
+            raise ConnectionLostError("test")

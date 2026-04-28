@@ -484,15 +484,11 @@ class ArrowjetConnection:
 
 # ── Error classification ──────────────────────────────────────
 
-# Patterns used to classify raw exceptions into the Arrowjet hierarchy.
+# S3-specific patterns (not covered by hardening.classify_error which
+# focuses on transient vs permanent vs connection).
 _S3_PATTERNS = (
     "nosuchbucket", "accessdenied", "s3", "bucket",
     "staging", "upload", "download",
-)
-_TRANSIENT_PATTERNS = (
-    "timeout", "timed out", "connection reset", "connection refused",
-    "broken pipe", "temporarily unavailable", "throttl",
-    "endpointconnectionerror", "connecttimeouterror",
 )
 _DATA_PATTERNS = (
     "schema", "type mismatch", "column", "data type",
@@ -505,22 +501,30 @@ def _classify_bulk_error(exc: Exception, operation: str) -> Exception:
     Wrap a raw exception in the appropriate ArrowjetError subclass.
 
     If the exception is already an ArrowjetError subclass, return it as-is.
-    Otherwise, inspect the error message to pick the best category.
+    Otherwise, use hardening.classify_error for transient/connection
+    detection and local patterns for S3/data errors.
     """
     if isinstance(exc, (S3Error, DataError, TransientError)):
         return exc
 
-    msg = str(exc).lower()
+    # ConnectionLostError from hardening module -> TransientError
+    from .hardening import ConnectionLostError
+    if isinstance(exc, ConnectionLostError):
+        return TransientError(f"Bulk {operation} failed (connection lost): {exc}")
 
-    # Check botocore/boto3 exceptions by class name as well
+    msg = str(exc).lower()
     exc_type = type(exc).__name__.lower()
 
+    # S3-specific errors
     if any(p in msg or p in exc_type for p in _S3_PATTERNS):
         return S3Error(f"Bulk {operation} S3 staging failed: {exc}")
 
-    if any(p in msg or p in exc_type for p in _TRANSIENT_PATTERNS):
+    # Transient/connection errors (delegate to hardening module)
+    category = classify_error(exc)
+    if category in (ErrorCategory.TRANSIENT, ErrorCategory.CONNECTION):
         return TransientError(f"Bulk {operation} failed (transient): {exc}")
 
+    # Data/schema errors
     if any(p in msg or p in exc_type for p in _DATA_PATTERNS):
         return DataError(f"Bulk {operation} data error: {exc}")
 
