@@ -32,19 +32,27 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
+from typing import Any, Optional, Union
+
+import pyarrow as pa
+
+from .engine import Engine
+from .bulk.reader import ReadResult
+from .bulk.writer import WriteResult
 
 logger = logging.getLogger(__name__)
 
 
 def transfer(
-    source_engine,
-    source_conn,
+    source_engine: Engine,
+    source_conn: Any,
     query: str,
-    dest_engine,
-    dest_conn,
+    dest_engine: Engine,
+    dest_conn: Any,
     dest_table: str,
-) -> "TransferResult":
+    validate: bool = False,
+    chunk_size: Optional[int] = None,
+) -> TransferResult:
     """
     Transfer data between any two databases via Arrow.
 
@@ -53,25 +61,34 @@ def transfer(
     Arrow Table is the in-memory bridge  - zero serialization overhead.
 
     Args:
-        source_engine: Engine for the source database
-        source_conn: DBAPI connection to the source database
-        query: SELECT query to execute on the source
-        dest_engine: Engine for the destination database
-        dest_conn: DBAPI connection to the destination database
-        dest_table: Target table name in the destination (must exist)
+        source_engine: Engine for the source database.
+        source_conn: DBAPI connection to the source database.
+        query: SELECT query to execute on the source.
+        dest_engine: Engine for the destination database.
+        dest_conn: DBAPI connection to the destination database.
+        dest_table: Target table name in the destination (must exist).
+        validate: If True, verify that the number of rows written matches
+            the number of rows read and raise DataError on mismatch.
+        chunk_size: If set, write in batches of this many rows to limit
+            peak memory usage for large datasets. When None (default),
+            the entire Arrow table is written in a single call.
 
     Returns:
-        TransferResult with row count, timing breakdown, and provider info
+        TransferResult with row count, timing breakdown, and provider info.
+
+    Raises:
+        DataError: If validate=True and the written row count does not
+            match the read row count.
     """
     start = time.perf_counter()
 
     # Phase 1: Read from source
     t = time.perf_counter()
-    read_result = source_engine.read_bulk(source_conn, query)
+    read_result: ReadResult = source_engine.read_bulk(source_conn, query)
     read_time = time.perf_counter() - t
 
-    arrow_table = read_result.table
-    rows = read_result.rows
+    arrow_table: pa.Table = read_result.table
+    rows: int = read_result.rows
 
     if rows == 0:
         logger.info("Transfer: 0 rows from source query, nothing to write.")
@@ -90,20 +107,48 @@ def transfer(
         rows, source_engine.provider, read_time,
     )
 
-    # Phase 2: Write to destination
+    # Phase 2: Write to destination (chunked or single-shot)
     t = time.perf_counter()
-    dest_engine.write_bulk(dest_conn, arrow_table, dest_table)
+    rows_written = 0
+
+    if chunk_size and rows > chunk_size:
+        for offset in range(0, rows, chunk_size):
+            chunk = arrow_table.slice(offset, chunk_size)
+            write_result: WriteResult = dest_engine.write_bulk(
+                dest_conn, chunk, dest_table,
+            )
+            rows_written += write_result.rows
+            logger.debug(
+                "Transfer chunk: wrote %d rows (offset=%d, total_written=%d)",
+                write_result.rows, offset, rows_written,
+            )
+    else:
+        write_result = dest_engine.write_bulk(dest_conn, arrow_table, dest_table)
+        rows_written = write_result.rows
+
     write_time = time.perf_counter() - t
+
+    # Free the Arrow table now that writing is done
+    del arrow_table
 
     total_time = time.perf_counter() - start
 
+    # Phase 3: Optional row-count validation
+    if validate and rows_written != rows:
+        from .connection import DataError
+        raise DataError(
+            f"Row count mismatch after transfer: "
+            f"read {rows:,} rows but wrote {rows_written:,} rows "
+            f"to {dest_table}"
+        )
+
     logger.info(
         "Transfer: wrote %d rows to %s.%s in %.2fs (total=%.2fs)",
-        rows, dest_engine.provider, dest_table, write_time, total_time,
+        rows_written, dest_engine.provider, dest_table, write_time, total_time,
     )
 
     return TransferResult(
-        rows=rows,
+        rows=rows_written,
         read_time_s=round(read_time, 3),
         write_time_s=round(write_time, 3),
         total_time_s=round(total_time, 3),
@@ -121,8 +166,16 @@ class TransferResult:
         "source_provider", "dest_provider", "dest_table",
     )
 
-    def __init__(self, rows, read_time_s, write_time_s, total_time_s,
-                 source_provider, dest_provider, dest_table):
+    def __init__(
+        self,
+        rows: int,
+        read_time_s: float,
+        write_time_s: float,
+        total_time_s: float,
+        source_provider: str,
+        dest_provider: str,
+        dest_table: str,
+    ) -> None:
         self.rows = rows
         self.read_time_s = read_time_s
         self.write_time_s = write_time_s
@@ -131,7 +184,7 @@ class TransferResult:
         self.dest_provider = dest_provider
         self.dest_table = dest_table
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"TransferResult(rows={self.rows:,}, "
             f"{self.source_provider}->{self.dest_provider}, "

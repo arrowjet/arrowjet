@@ -26,12 +26,13 @@ Usage:
 
 __version__ = "0.5.0"
 
-from .connection import connect, ArrowjetConnection, ArrowjetError
+from .connection import connect, ArrowjetConnection, ArrowjetError, S3Error, DataError, TransientError
 from .engine import Engine, PostgreSQLEngine
 from .transfer import transfer, TransferResult
 
 __all__ = [
     "connect", "ArrowjetConnection", "ArrowjetError",
+    "S3Error", "DataError", "TransientError",
     "Engine", "PostgreSQLEngine",
     "transfer", "TransferResult",
     "__version__",

@@ -26,7 +26,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Optional, Union
 
 try:
     import adbc_driver_postgresql.dbapi
@@ -47,6 +47,7 @@ from .bulk.writer import BulkWriter, WriteResult
 from .bulk.reader import BulkReader, ReadResult
 from .observability import ConnectionMetrics, BulkOperationEvent, TracingHook, CostLogger, CostLogLevel, _noop_hook
 from .auto_mode import AutoRouter, AutoModeConfig, ReadMode, RoutingDecision
+from .hardening import check_connection_or_raise, classify_error, ErrorCategory
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ class ArrowjetConnection:
     Bulk mode: read_bulk/write_bulk via S3 staging engine.
     """
 
-    def __init__(self, host, database, user, password, port, **staging_kwargs):
+    def __init__(self, host: str, database: str, user: str, password: str, port: int, **staging_kwargs: Any) -> None:
         self._host = host
         self._database = database
         self._user = user
@@ -158,9 +159,13 @@ class ArrowjetConnection:
         self._port = port
 
         # Safe mode connection (ADBC PG driver)
+        # Build URI inline to reduce the chance of credentials leaking
+        # in stack traces or error messages.
         from urllib.parse import quote_plus
-        uri = f"postgresql://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{database}"
-        self._adbc_conn = adbc_driver_postgresql.dbapi.connect(uri)
+        self._adbc_conn = adbc_driver_postgresql.dbapi.connect(
+            f"postgresql://{quote_plus(user)}:{quote_plus(password)}"
+            f"@{host}:{port}/{database}"
+        )
 
         # Also keep a redshift_connector for COPY/UNLOAD commands
         # (ADBC PG driver's Redshift support is experimental)
@@ -246,23 +251,23 @@ class ArrowjetConnection:
 
     # ── Safe mode (DBAPI) ─────────────────────────────────────
 
-    def cursor(self):
+    def cursor(self) -> adbc_driver_postgresql.dbapi.Cursor:
         """Return a DBAPI cursor for safe-mode queries."""
         return self._adbc_conn.cursor()
 
-    def execute(self, query: str, parameters=None):
+    def execute(self, query: str, parameters: Any = None) -> adbc_driver_postgresql.dbapi.Cursor:
         """Execute a query in safe mode. Returns cursor."""
         cursor = self.cursor()
         cursor.execute(query, parameters)
         return cursor
 
-    def fetch_dataframe(self, query: str, parameters=None):
+    def fetch_dataframe(self, query: str, parameters: Any = None) -> "pd.DataFrame":
         """Execute query and return pandas DataFrame (safe mode)."""
         cursor = self.execute(query, parameters)
         table = cursor.fetch_arrow_table()
         return table.to_pandas()
 
-    def fetch_numpy_array(self, query: str, parameters=None):
+    def fetch_numpy_array(self, query: str, parameters: Any = None) -> "np.ndarray":
         """Execute query and return numpy array (safe mode)."""
         cursor = self.execute(query, parameters)
         table = cursor.fetch_arrow_table()
@@ -313,11 +318,11 @@ class ArrowjetConnection:
 
     # ── Transaction support (safe mode) ───────────────────────
 
-    def commit(self):
+    def commit(self) -> None:
         """Commit the current transaction (safe mode)."""
         self._adbc_conn.commit()
 
-    def rollback(self):
+    def rollback(self) -> None:
         """Rollback the current transaction (safe mode)."""
         self._adbc_conn.rollback()
 
@@ -351,6 +356,7 @@ class ArrowjetConnection:
                 "Bulk mode not available. Provide staging_bucket, "
                 "staging_iam_role, and staging_region to connect()."
             )
+        check_connection_or_raise(self._rs_conn, "Redshift connection (bulk read)")
         try:
             result = self._bulk_reader.read(
                 self._rs_conn, query, autocommit=True, explicit_mode=True, **kwargs,
@@ -374,9 +380,9 @@ class ArrowjetConnection:
                 bytes_staged=0, files_count=0, s3_requests=0,
                 duration_s=0, path_chosen="unload", s3_path="", error=str(e),
             ))
-            raise
+            raise _classify_bulk_error(e, "read") from e
 
-    def read_auto(self, query: str, bulk_hint: bool = False, **kwargs):
+    def read_auto(self, query: str, bulk_hint: bool = False, **kwargs: Any) -> Union[pa.Table, ReadResult]:
         """
         Auto-routed read  - router decides direct vs bulk based on query analysis.
 
@@ -413,6 +419,7 @@ class ArrowjetConnection:
                 "Bulk mode not available. Provide staging_bucket, "
                 "staging_iam_role, and staging_region to connect()."
             )
+        check_connection_or_raise(self._rs_conn, "Redshift connection (bulk write)")
         try:
             result = self._bulk_writer.write(self._rs_conn, table, target_table, **kwargs)
             self._metrics.record_bulk_write(result.bytes_staged, 2)  # PUT + DELETE
@@ -434,9 +441,9 @@ class ArrowjetConnection:
                 bytes_staged=0, files_count=0, s3_requests=0,
                 duration_s=0, path_chosen="copy", s3_path="", error=str(e),
             ))
-            raise
+            raise _classify_bulk_error(e, "write") from e
 
-    def write_dataframe(self, df, target_table: str, **kwargs) -> WriteResult:
+    def write_dataframe(self, df: Any, target_table: str, **kwargs: Any) -> WriteResult:
         """Bulk write a pandas DataFrame via COPY."""
         table = pa.Table.from_pandas(df, preserve_index=False)
         return self.write_bulk(table, target_table, **kwargs)
@@ -452,7 +459,7 @@ class ArrowjetConnection:
         """Return cumulative metrics for this connection."""
         return self._metrics
 
-    def close(self):
+    def close(self) -> None:
         """Close all connections."""
         try:
             self._adbc_conn.close()
@@ -464,16 +471,78 @@ class ArrowjetConnection:
             pass
         logger.info("Arrowjet connection closed")
 
-    def __enter__(self):
+    def __enter__(self) -> ArrowjetConnection:
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: Any) -> None:
         self.close()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         mode = "safe+bulk" if self.has_bulk else "safe-only"
         return f"ArrowjetConnection(host={self._host}, mode={mode})"
 
 
+# ── Error classification ──────────────────────────────────────
+
+# Patterns used to classify raw exceptions into the Arrowjet hierarchy.
+_S3_PATTERNS = (
+    "nosuchbucket", "accessdenied", "s3", "bucket",
+    "staging", "upload", "download",
+)
+_TRANSIENT_PATTERNS = (
+    "timeout", "timed out", "connection reset", "connection refused",
+    "broken pipe", "temporarily unavailable", "throttl",
+    "endpointconnectionerror", "connecttimeouterror",
+)
+_DATA_PATTERNS = (
+    "schema", "type mismatch", "column", "data type",
+    "incompatible", "cannot cast", "conversion",
+)
+
+
+def _classify_bulk_error(exc: Exception, operation: str) -> Exception:
+    """
+    Wrap a raw exception in the appropriate ArrowjetError subclass.
+
+    If the exception is already an ArrowjetError subclass, return it as-is.
+    Otherwise, inspect the error message to pick the best category.
+    """
+    if isinstance(exc, (S3Error, DataError, TransientError)):
+        return exc
+
+    msg = str(exc).lower()
+
+    # Check botocore/boto3 exceptions by class name as well
+    exc_type = type(exc).__name__.lower()
+
+    if any(p in msg or p in exc_type for p in _S3_PATTERNS):
+        return S3Error(f"Bulk {operation} S3 staging failed: {exc}")
+
+    if any(p in msg or p in exc_type for p in _TRANSIENT_PATTERNS):
+        return TransientError(f"Bulk {operation} failed (transient): {exc}")
+
+    if any(p in msg or p in exc_type for p in _DATA_PATTERNS):
+        return DataError(f"Bulk {operation} data error: {exc}")
+
+    # Fall back to generic ArrowjetError
+    return ArrowjetError(f"Bulk {operation} failed: {exc}")
+
+
 class ArrowjetError(Exception):
+    """Base exception for all Arrowjet errors."""
+    pass
+
+
+class S3Error(ArrowjetError):
+    """S3 staging failed (bucket not found, permissions, configuration)."""
+    pass
+
+
+class DataError(ArrowjetError):
+    """Schema mismatch, type incompatibility, or data validation failure."""
+    pass
+
+
+class TransientError(ArrowjetError):
+    """Network timeout, temporary unavailability (may be retried)."""
     pass

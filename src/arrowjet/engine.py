@@ -32,7 +32,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import pyarrow as pa
 
@@ -183,7 +183,7 @@ class Engine:
             kwargs["staging_bucket"],
         )
 
-    def read_bulk(self, conn, query: str, **kwargs):
+    def read_bulk(self, conn: Any, query: str, **kwargs: Any) -> Any:
         """
         Bulk read from the database.
 
@@ -211,7 +211,7 @@ class Engine:
         self._fire_hooks("on_read_complete", result)
         return result
 
-    def write_bulk(self, conn, table: pa.Table, target_table: str, **kwargs):
+    def write_bulk(self, conn: Any, table: pa.Table, target_table: str, **kwargs: Any) -> Any:
         """
         Bulk write an Arrow table to the database.
 
@@ -238,7 +238,7 @@ class Engine:
         self._fire_hooks("on_write_complete", result)
         return result
 
-    def write_dataframe(self, conn, df, target_table: str, **kwargs):
+    def write_dataframe(self, conn: Any, df: Any, target_table: str, **kwargs: Any) -> Any:
         """
         Bulk write a pandas DataFrame to the database.
 
@@ -262,7 +262,7 @@ class Engine:
         """The active database provider name."""
         return self._provider_name
 
-    def on(self, event: str, callback):
+    def on(self, event: str, callback: Callable) -> Engine:
         """
         Register a lifecycle hook.
 
@@ -282,7 +282,7 @@ class Engine:
         self._hooks[event].append(callback)
         return self
 
-    def _fire_hooks(self, event: str, result):
+    def _fire_hooks(self, event: str, result: Any) -> None:
         """Fire all registered callbacks for an event."""
         for callback in self._hooks.get(event, []):
             try:
@@ -290,7 +290,7 @@ class Engine:
             except Exception as e:
                 logger.warning("Hook %s raised: %s", event, e)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         if self._is_pg:
             return "Engine(provider=postgresql)"
         if self._is_mysql:

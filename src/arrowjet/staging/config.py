@@ -8,7 +8,33 @@ from typing import Optional
 
 
 class CleanupPolicy(Enum):
-    """When to clean up staged S3 files."""
+    """
+    When to clean up staged S3 files after a bulk operation.
+
+    Cleanup behavior by policy:
+      ALWAYS      - Staged files are deleted after every operation, whether
+                    it succeeded or failed. Safest for cost control.
+      ON_SUCCESS  - Staged files are deleted after a successful operation.
+                    On failure, files are preserved for debugging. This is
+                    the default.
+      NEVER       - Arrowjet never deletes staged files. The caller is
+                    responsible for lifecycle management (e.g. manual
+                    deletion or S3 lifecycle rules on the bucket).
+      TTL_MANAGED - Arrowjet skips deletion entirely, relying on S3
+                    lifecycle rules configured on the bucket/prefix to
+                    expire objects automatically.
+
+    Partial uploads: If an upload fails midway, the ALWAYS and ON_SUCCESS
+    (on failure) policies both leave partial files in place. Use ALWAYS if
+    you need aggressive cleanup, or configure S3 lifecycle rules as a
+    safety net regardless of policy.
+
+    Cleanup failures: If S3 deletion itself fails (e.g. transient network
+    error), the operation result is still returned to the caller. The
+    failure is logged as a warning and the operation transitions to
+    CLEANUP_FAILED state. Files may remain and should be cleaned manually
+    or via S3 lifecycle rules.
+    """
     ALWAYS = "always"           # Delete after every operation
     ON_SUCCESS = "on_success"   # Delete on success, preserve on failure
     NEVER = "never"             # User manages lifecycle
