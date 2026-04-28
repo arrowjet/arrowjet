@@ -75,6 +75,7 @@ dev = [
 
 [project.scripts]
 arrowjet = "arrowjet.cli.main:main"
+aj = "arrowjet.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

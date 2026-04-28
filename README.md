@@ -10,6 +10,13 @@ pip install arrowjet[redshift]    # + Redshift driver (arrowjet.connect())
 pip install arrowjet[full]        # + Redshift + PostgreSQL + MySQL + SQLAlchemy
 ```
 
+Both `arrowjet` and `aj` work as CLI commands:
+
+```bash
+aj export --provider postgresql --query "SELECT * FROM orders" --to orders.parquet
+aj transfer --from-profile pg --to-profile mysql --table orders
+```
+
 **Supported databases:**
 - **PostgreSQL** / Aurora PostgreSQL / RDS PostgreSQL  - via COPY protocol
 - **MySQL** / Aurora MySQL / RDS MySQL / MariaDB  - via LOAD DATA LOCAL INFILE
