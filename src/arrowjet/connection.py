@@ -31,15 +31,11 @@ from typing import Any, Optional, Union
 try:
     import adbc_driver_postgresql.dbapi
     import redshift_connector
+    _HAS_REDSHIFT_DEPS = True
 except ImportError:
-    raise ImportError(
-        "arrowjet.connect() requires the Redshift driver extras.\n"
-        "Install with: pip install arrowjet[redshift]"
-    )
+    _HAS_REDSHIFT_DEPS = False
 
 import pyarrow as pa
-import adbc_driver_postgresql.dbapi
-import redshift_connector
 
 from .staging.config import StagingConfig, CleanupPolicy, EncryptionMode, QueueBehavior
 from .staging.manager import StagingManager
@@ -106,6 +102,12 @@ def connect(
     must be available (environment, IAM role, or ~/.aws/credentials).
     """
     # Resolve credentials
+    if not _HAS_REDSHIFT_DEPS:
+        raise ImportError(
+            "arrowjet.connect() requires the Redshift driver extras.\n"
+            "Install with: pip install arrowjet[redshift]\n"
+            "For PostgreSQL or MySQL, use arrowjet.Engine(provider=...) instead."
+        )
     from .auth.redshift import resolve_credentials
 
     creds = resolve_credentials(
