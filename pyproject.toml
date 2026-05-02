@@ -51,6 +51,7 @@ redshift = [
     "adbc-driver-manager>=1.0.0",
 ]
 sqlalchemy = ["sqlalchemy>=2.0.0"]
+iceberg = ["pyiceberg[s3fs]>=0.9.0"]
 full = [
     "psycopg2-binary>=2.9.0",
     "pymysql>=1.1.0",
@@ -58,6 +59,7 @@ full = [
     "adbc-driver-postgresql>=1.0.0",
     "adbc-driver-manager>=1.0.0",
     "sqlalchemy>=2.0.0",
+    "pyiceberg[s3fs]>=0.9.0",
 ]
 dev = [
     "pytest>=8.0",

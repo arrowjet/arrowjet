@@ -155,3 +155,40 @@ class TestExportProgressIntegration:
             assert result.exit_code == 0
             assert expected_count in result.output
             assert os.path.exists(dest)
+
+
+# --- Iceberg format export test ---
+
+@requires_pg
+class TestExportIcebergFormatIntegration:
+
+    def test_export_iceberg_format_via_cli(self):
+        """Test --format iceberg through the CLI export command."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            warehouse = os.path.join(tmpdir, "warehouse")
+            result = runner.invoke(cli, [
+                "export",
+                "--query", "SELECT generate_series(1, 25) AS id",
+                "--to", warehouse,
+                "--format", "iceberg",
+                "--iceberg-table", "cli_test.export_tbl",
+                *_pg_args(),
+            ])
+            assert result.exit_code == 0
+            assert "25" in result.output
+            assert "Iceberg" in result.output or "iceberg" in result.output
+
+    def test_export_iceberg_missing_table_name_errors(self):
+        """--format iceberg without --iceberg-table should error."""
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            warehouse = os.path.join(tmpdir, "warehouse")
+            result = runner.invoke(cli, [
+                "export",
+                "--query", "SELECT 1 AS id",
+                "--to", warehouse,
+                "--format", "iceberg",
+                *_pg_args(),
+            ])
+            assert result.exit_code != 0

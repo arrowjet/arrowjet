@@ -30,7 +30,10 @@ from .config import (
 @click.option("--from-file", "from_file", default=None, type=click.Path(exists=True),
               help="Read SQL query from a file (mutually exclusive with --query)")
 @click.option("--to", "destination", required=True, help="Destination: s3://bucket/path or local file path")
-@click.option("--format", "fmt", default="parquet", type=click.Choice(["parquet", "csv"]), help="Output format")
+@click.option("--format", "fmt", default="parquet", type=click.Choice(["parquet", "csv", "iceberg"]), help="Output format")
+@click.option("--iceberg-table", default=None, help="Iceberg table name (e.g., analytics.orders). Required when --format iceberg")
+@click.option("--iceberg-mode", default="append", type=click.Choice(["append", "overwrite"]), help="Iceberg write mode")
+@click.option("--iceberg-catalog", default="sql", type=click.Choice(["sql", "rest", "glue"]), help="Iceberg catalog type")
 @click.option("--profile", default=None, help="Config profile name")
 @click.option("--provider", default=None, type=click.Choice(["redshift", "postgresql", "mysql"]), help="Database provider")
 @click.option("--host", default=None, help="Database host (overrides profile)")
@@ -45,7 +48,8 @@ from .config import (
 @click.option("--region", default=None, help="AWS region (overrides profile)")
 @click.option("--dry-run", is_flag=True, help="Show the SQL that would be executed without running it")
 @click.option("--verbose", is_flag=True, help="Show detailed output")
-def export(query, from_file, destination, fmt, profile, provider, host, database, user, password,
+def export(query, from_file, destination, fmt, iceberg_table, iceberg_mode, iceberg_catalog,
+           profile, provider, host, database, user, password,
            auth_type, secret_arn, staging_bucket, iam_role, region, dry_run, verbose):
     """Export query results from a database to S3 or local file."""
     # Resolve query from --query or --from-file
@@ -112,6 +116,8 @@ def export(query, from_file, destination, fmt, profile, provider, host, database
             pq.write_table(table, destination)
         elif fmt == "csv":
             table.to_pandas().to_csv(destination, index=False)
+        elif fmt == "iceberg":
+            _write_iceberg(table, destination, iceberg_table, iceberg_mode, iceberg_catalog)
 
         elapsed = time.perf_counter() - start
         click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")
@@ -135,6 +141,8 @@ def export(query, from_file, destination, fmt, profile, provider, host, database
             pq.write_table(table, destination)
         elif fmt == "csv":
             table.to_pandas().to_csv(destination, index=False)
+        elif fmt == "iceberg":
+            _write_iceberg(table, destination, iceberg_table, iceberg_mode, iceberg_catalog)
 
         elapsed = time.perf_counter() - start
         click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")
@@ -211,6 +219,8 @@ def export(query, from_file, destination, fmt, profile, provider, host, database
             pq.write_table(table, destination)
         elif fmt == "csv":
             table.to_pandas().to_csv(destination, index=False)
+        elif fmt == "iceberg":
+            _write_iceberg(table, destination, iceberg_table, iceberg_mode, iceberg_catalog)
 
         elapsed = time.perf_counter() - start
         click.echo(f"Exported {rows:,} rows in {elapsed:.2f}s -> {destination}")
@@ -284,3 +294,29 @@ def _count_s3_parquet_rows(s3_path, region="us-east-1"):
         return total_rows
     except Exception:
         return None
+
+
+def _write_iceberg(table, warehouse, iceberg_table_name, mode, catalog_type):
+    """Write an Arrow table to an Iceberg table via the arrowjet.iceberg module."""
+    if not iceberg_table_name:
+        click.echo(
+            "Error: --iceberg-table is required when using --format iceberg.\n"
+            "Example: --format iceberg --iceberg-table analytics.orders",
+            err=True,
+        )
+        raise SystemExit(1)
+
+    from arrowjet.iceberg import write_iceberg
+
+    click.echo(f"Writing to Iceberg table '{iceberg_table_name}' ({mode})...")
+    result = write_iceberg(
+        table=table,
+        table_name=iceberg_table_name,
+        warehouse=warehouse,
+        mode=mode,
+        catalog_type=catalog_type,
+    )
+    click.echo(
+        f"Iceberg write complete: {result.rows:,} rows to '{result.table_name}' "
+        f"in {result.total_time_s}s"
+    )

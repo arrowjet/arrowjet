@@ -32,11 +32,18 @@ from .hardening import ConnectionLostError
 from .engine import Engine, PostgreSQLEngine
 from .transfer import transfer, TransferResult
 
+# Iceberg support (optional -- requires pip install arrowjet[iceberg])
+try:
+    from .iceberg import write_iceberg, read_iceberg, IcebergWriteResult
+except ImportError:
+    pass
+
 __all__ = [
     "connect", "ArrowjetConnection", "ArrowjetError",
     "S3Error", "DataError", "TransientError", "ConnectionLostError",
     "Engine", "PostgreSQLEngine",
     "transfer", "TransferResult",
+    "write_iceberg", "read_iceberg", "IcebergWriteResult",
     "__version__",
 ]
 

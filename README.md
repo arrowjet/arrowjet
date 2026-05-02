@@ -7,7 +7,8 @@ Arrowjet wraps each database's native bulk path in a simple Python API  - no boi
 ```bash
 pip install arrowjet              # core (PostgreSQL COPY, MySQL LOAD DATA, BYOC Engine, CLI)
 pip install arrowjet[redshift]    # + Redshift driver (arrowjet.connect())
-pip install arrowjet[full]        # + Redshift + PostgreSQL + MySQL + SQLAlchemy
+pip install arrowjet[iceberg]     # + Apache Iceberg output (write_iceberg())
+pip install arrowjet[full]        # + Redshift + PostgreSQL + MySQL + SQLAlchemy + Iceberg
 ```
 
 Both `arrowjet` and `aj` work as CLI commands:
@@ -275,6 +276,13 @@ arrowjet transfer \
   --from-profile my-postgres \
   --to-profile my-mysql \
   --query "SELECT * FROM orders" --to-table orders
+
+# Export to Apache Iceberg (queryable from Athena, Spark, Trino, DuckDB)
+arrowjet export --provider postgresql \
+  --query "SELECT * FROM orders" \
+  --to /path/to/warehouse \
+  --format iceberg \
+  --iceberg-table analytics.orders
 ```
 
 All commands read connection details from `~/.arrowjet/config.yaml` (set up with `arrowjet configure`).
@@ -350,11 +358,44 @@ Arrowjet wraps the fast path in a one-line API. There is no slow path.
 
 ---
 
+## Apache Iceberg Output
+
+Export data from any supported database directly to Apache Iceberg tables. The result is queryable from Athena, Redshift Spectrum, Spark, Trino, DuckDB, or any Iceberg-compatible engine.
+
+```bash
+pip install arrowjet[iceberg]
+```
+
+```python
+import arrowjet
+
+# Read from PostgreSQL, write to Iceberg
+engine = arrowjet.Engine(provider="postgresql")
+result = engine.read_bulk(pg_conn, "SELECT * FROM orders")
+
+arrowjet.write_iceberg(
+    result.table,
+    table_name="analytics.orders",
+    warehouse="/path/to/warehouse",   # local path or s3://bucket/warehouse
+    mode="append",                    # "append" or "overwrite"
+)
+
+# Read it back
+table = arrowjet.read_iceberg("analytics.orders", "/path/to/warehouse")
+df = table.to_pandas()
+```
+
+Supports SQLite-based catalog (no server needed), REST catalog, and AWS Glue catalog.
+
+---
+
 ## Requirements
 
 - Python 3.10+
 - **PostgreSQL:** `psycopg2` or `psycopg2-binary` (any PostgreSQL  - Aurora, RDS, self-hosted)
 - **MySQL:** `pymysql` with `local_infile=True` (any MySQL  - Aurora, RDS, MariaDB, self-hosted)
+- **Redshift:** `pip install arrowjet[redshift]` + S3 bucket + IAM role
+- **Iceberg:** `pip install arrowjet[iceberg]` (pyiceberg + s3fs)
 - **Redshift:** `pip install arrowjet[redshift]` + S3 bucket + IAM role
 
 See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_setup.md) for Redshift IAM configuration.
@@ -379,7 +420,7 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 - [ ] Snowflake provider (COPY INTO via stages)
 - [ ] BigQuery provider (GCS + Load API)
 - [ ] Databricks provider (cloud storage + COPY INTO)
-- [ ] Apache Iceberg output format (`--format iceberg`)
+- [x] Apache Iceberg output format (`--format iceberg`)
 - [ ] Data diff engine (`arrowjet.diff()`)
 - [ ] IAM database auth for Aurora PostgreSQL / Aurora MySQL
 - [ ] Data validation - row counts, null rates, duplicate detection
