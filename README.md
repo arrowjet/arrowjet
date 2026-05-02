@@ -232,6 +232,50 @@ PostgreSQL and MySQL transfers are sub-second. Redshift paths include S3 staging
 
 ---
 
+## Data Diff
+
+Compare data between any two databases -- or two tables in the same database. Find exactly what rows were added, removed, or changed.
+
+```python
+import arrowjet
+
+pg_engine = arrowjet.Engine(provider="postgresql")
+mysql_engine = arrowjet.Engine(provider="mysql")
+
+result = arrowjet.diff(
+    source_engine=pg_engine, source_conn=pg_conn,
+    dest_engine=mysql_engine, dest_conn=mysql_conn,
+    query="SELECT * FROM orders",
+    dest_table="orders",
+    key_columns=["id"],
+)
+
+print(result.summary())
+# Source: 100,000 rows | Dest: 99,975 rows
+#   Added (in source, not in dest): 142
+#   Removed (in dest, not in source): 3
+#   Changed: 27 (columns: status, updated_at)
+#   Unchanged: 99,828
+```
+
+Also works with Arrow tables directly:
+
+```python
+result = arrowjet.diff_tables(source_table, dest_table, key_columns=["id"], include_rows=True)
+print(result.added_rows.to_pandas())   # see the actual added rows
+```
+
+```bash
+# CLI
+arrowjet diff \
+  --from-profile my-postgres \
+  --to-profile my-mysql \
+  --table orders \
+  --key id
+```
+
+---
+
 ## CLI
 
 ```bash
@@ -421,7 +465,7 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 - [ ] BigQuery provider (GCS + Load API)
 - [ ] Databricks provider (cloud storage + COPY INTO)
 - [x] Apache Iceberg output format (`--format iceberg`)
-- [ ] Data diff engine (`arrowjet.diff()`)
+- [x] Data diff engine (`arrowjet.diff()`)
 - [ ] IAM database auth for Aurora PostgreSQL / Aurora MySQL
 - [ ] Data validation - row counts, null rates, duplicate detection
 - [ ] Airflow provider package (`apache-airflow-providers-arrowjet`)

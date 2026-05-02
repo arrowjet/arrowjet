@@ -12,6 +12,7 @@ import click
 from arrowjet import __version__
 
 from .cmd_configure import configure
+from .cmd_diff import diff_cmd
 from .cmd_export import export
 from .cmd_import import import_cmd
 from .cmd_preview import preview
@@ -28,6 +29,7 @@ def cli():
 
 
 cli.add_command(configure)
+cli.add_command(diff_cmd)
 cli.add_command(export)
 cli.add_command(import_cmd)
 cli.add_command(preview)

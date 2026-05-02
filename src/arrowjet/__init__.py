@@ -31,6 +31,7 @@ from .connection import connect, ArrowjetConnection, ArrowjetError, S3Error, Dat
 from .hardening import ConnectionLostError
 from .engine import Engine, PostgreSQLEngine
 from .transfer import transfer, TransferResult
+from .diff import diff, diff_tables, DiffResult
 
 # Iceberg support (optional -- requires pip install arrowjet[iceberg])
 try:
@@ -43,6 +44,7 @@ __all__ = [
     "S3Error", "DataError", "TransientError", "ConnectionLostError",
     "Engine", "PostgreSQLEngine",
     "transfer", "TransferResult",
+    "diff", "diff_tables", "DiffResult",
     "write_iceberg", "read_iceberg", "IcebergWriteResult",
     "__version__",
 ]
