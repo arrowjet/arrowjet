@@ -14,8 +14,9 @@ import click
 @click.option("--file", "filepath", required=True, help="Parquet file path (local or s3://)")
 @click.option("--schema", "show_schema", is_flag=True, help="Show schema only")
 @click.option("--rows", default=10, help="Number of sample rows to show")
+@click.option("--max-width", default=50, help="Max column width for sample display (0 = no limit)")
 @click.option("--region", default="us-east-1", help="AWS region for S3 files")
-def preview(filepath, show_schema, rows, region):
+def preview(filepath, show_schema, rows, max_width, region):
     """Preview a Parquet file (schema, row count, sample data)."""
     import pyarrow.parquet as pq
 
@@ -45,4 +46,14 @@ def preview(filepath, show_schema, rows, region):
         click.echo()
         click.echo(f"Sample ({min(rows, table.num_rows)} rows):")
         sample = table.slice(0, min(rows, table.num_rows)).to_pandas()
-        click.echo(sample.to_string(index=False))
+
+        if max_width > 0:
+            import pandas as pd
+            with pd.option_context(
+                "display.max_colwidth", max_width,
+                "display.width", None,
+                "display.max_columns", None,
+            ):
+                click.echo(sample.to_string(index=False))
+        else:
+            click.echo(sample.to_string(index=False))

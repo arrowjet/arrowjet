@@ -211,6 +211,110 @@ class Engine:
         self._fire_hooks("on_read_complete", result)
         return result
 
+    def read_bulk_iter(self, conn: Any, query: str, batch_size: int = 10000, **kwargs: Any):
+        """
+        Bulk read with chunked iteration for memory-constrained environments.
+
+        Yields Arrow RecordBatches instead of materializing the full result.
+        Useful for Lambda, notebooks, or very large result sets.
+
+        PostgreSQL: COPY TO STDOUT -> parse in chunks
+        MySQL: cursor fetch in batches -> Arrow batches
+        Redshift: UNLOAD -> download Parquet files one at a time -> yield batches
+
+        Args:
+            conn: DBAPI-compatible connection
+            query: SELECT query to execute
+            batch_size: Number of rows per batch (PostgreSQL/MySQL only)
+
+        Yields:
+            pyarrow.RecordBatch
+        """
+        if self._is_pg:
+            yield from self._pg_read_iter(conn, query, batch_size)
+            return
+        if self._is_mysql:
+            yield from self._mysql_read_iter(conn, query, batch_size)
+            return
+        # Redshift: download parquet files one at a time
+        yield from self._redshift_read_iter(conn, query, **kwargs)
+
+    def _pg_read_iter(self, conn, query: str, batch_size: int):
+        """Chunked read for PostgreSQL using server-side cursor."""
+        import pyarrow as _pa
+
+        cursor = conn.cursor(name="arrowjet_chunked")
+        cursor.itersize = batch_size
+        cursor.execute(query)
+
+        while True:
+            rows = cursor.fetchmany(batch_size)
+            if not rows:
+                break
+            columns = [desc[0] for desc in cursor.description]
+            arrays = []
+            for i, col in enumerate(columns):
+                values = [row[i] for row in rows]
+                arrays.append(_pa.array(values))
+            batch = _pa.RecordBatch.from_arrays(arrays, names=columns)
+            yield batch
+
+        cursor.close()
+
+    def _mysql_read_iter(self, conn, query: str, batch_size: int):
+        """Chunked read for MySQL using cursor fetchmany."""
+        import pyarrow as _pa
+
+        cursor = conn.cursor()
+        cursor.execute(query)
+
+        while True:
+            rows = cursor.fetchmany(batch_size)
+            if not rows:
+                break
+            columns = [desc[0] for desc in cursor.description]
+            arrays = []
+            for i, col in enumerate(columns):
+                values = [row[i] for row in rows]
+                arrays.append(_pa.array(values))
+            batch = _pa.RecordBatch.from_arrays(arrays, names=columns)
+            yield batch
+
+        cursor.close()
+
+    def _redshift_read_iter(self, conn, query: str, **kwargs):
+        """Chunked read for Redshift: UNLOAD then yield one Parquet file at a time."""
+        import pyarrow.parquet as _pq
+
+        from .bulk.eligibility import check_read_eligibility
+
+        eligibility = check_read_eligibility(
+            query=query, autocommit=True, explicit_mode=True, staging_valid=True,
+        )
+        if not eligibility:
+            from .bulk.reader import ReadNotEligibleError
+            raise ReadNotEligibleError(eligibility.reason)
+
+        op = self._staging_manager.begin_operation("read")
+        try:
+            export_cmd = self._bulk_reader._provider.build_export_sql(
+                query=query, staging_path=op.path.s3_uri, parallel=True,
+            )
+            cursor = conn.cursor()
+            cursor.execute(export_cmd.sql)
+
+            files = self._staging_manager.downloader.list_parquet_files(op.path)
+            for f in files:
+                table = self._staging_manager.downloader.read_single_parquet(
+                    op.path, f.key
+                ) if hasattr(self._staging_manager.downloader, 'read_single_parquet') else (
+                    _pq.read_table(f"s3://{self._staging_manager.config.bucket}/{f.key}")
+                )
+                for batch in table.to_batches():
+                    yield batch
+        finally:
+            self._staging_manager.complete_operation(op)
+
     def write_bulk(self, conn: Any, table: pa.Table, target_table: str, **kwargs: Any) -> Any:
         """
         Bulk write an Arrow table to the database.

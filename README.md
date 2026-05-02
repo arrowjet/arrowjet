@@ -250,10 +250,19 @@ arrowjet import --from ./data.parquet --to sales_table
 
 # Inspect data
 arrowjet preview --file ./out.parquet
+arrowjet preview --file ./out.parquet --max-width 30
 arrowjet validate --table sales --row-count --schema --sample
 
-# Configure profiles
+# Configure and manage profiles
 arrowjet configure
+arrowjet profiles
+arrowjet profiles --verbose
+
+# Export with query from file
+arrowjet export --provider postgresql --from-file query.sql --to ./out.parquet
+
+# Dry-run (show SQL without executing)
+arrowjet export --provider postgresql --query "SELECT * FROM users" --to ./out.parquet --dry-run
 
 # Transfer between databases (inline credentials)
 arrowjet transfer \
@@ -358,12 +367,20 @@ See [docs/iam_setup.md](https://github.com/arrowjet/arrowjet/blob/main/docs/iam_
 - [x] PostgreSQL (COPY protocol)
 - [x] MySQL (LOAD DATA LOCAL INFILE)
 - [x] Cross-database transfer (`arrowjet.transfer()`)
+- [x] Chunked `read_bulk` - iterator mode for memory-constrained environments (Lambda, notebooks)
+- [x] `--dry-run` flag for export - show SQL without executing
+- [x] `--from-file` flag for export - read query from a .sql file
+- [x] `arrowjet profiles` - list configured connection profiles
+- [x] Row count in S3-direct export
+- [x] Truncate wide sample output in preview (`--max-width`)
+- [x] Progress indicator for long-running exports
 - [ ] `arrowjet benchmark` - CLI command to compare INSERT vs COPY speed on your own data
-- [ ] Chunked `read_bulk` - iterator mode for memory-constrained environments (Lambda, notebooks)
 - [ ] CSV/JSON staging format support for COPY/UNLOAD
 - [ ] Snowflake provider (COPY INTO via stages)
 - [ ] BigQuery provider (GCS + Load API)
 - [ ] Databricks provider (cloud storage + COPY INTO)
+- [ ] Apache Iceberg output format (`--format iceberg`)
+- [ ] Data diff engine (`arrowjet.diff()`)
 - [ ] IAM database auth for Aurora PostgreSQL / Aurora MySQL
 - [ ] Data validation - row counts, null rates, duplicate detection
 - [ ] Airflow provider package (`apache-airflow-providers-arrowjet`)
